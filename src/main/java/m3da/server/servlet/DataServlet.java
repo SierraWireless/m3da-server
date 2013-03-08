@@ -53,7 +53,7 @@ public class DataServlet extends HttpServlet {
 			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "no system id in the path");
 			return;
 		}
-
+		this.setResponseContentType(resp);
 		system = system.substring(1);
 		LOG.info("system " + system);
 
@@ -61,9 +61,6 @@ public class DataServlet extends HttpServlet {
 		Map<String, List<JSystemReadData>> json = this.store2JsonMapper.mapReceivedData(data);
 
 		this.jacksonMapper.writeValue(resp.getWriter(), json);
-
-		this.setResponseContentType(resp);
-
 	}
 
 	@Override
@@ -74,15 +71,14 @@ public class DataServlet extends HttpServlet {
 			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "no system id in the path");
 			return;
 		}
+		this.setResponseContentType(resp);
+
 		system = system.substring(1);
 
 		JSystemWriteSettings settings = this.jacksonMapper.readValue(req.getInputStream(), JSystemWriteSettings.class);
 
 		List<Message> newData = store2JsonMapper.mapDataToSend(settings);
 		store.enqueueDataToSend(system, newData);
-
-		this.setResponseContentType(resp);
-
 	}
 
 	private void setResponseContentType(HttpServletResponse resp) {
