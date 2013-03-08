@@ -61,6 +61,9 @@ public class DataServlet extends HttpServlet {
 		Map<String, List<JSystemData>> json = this.store2JsonMapper.mapReceivedData(data);
 
 		this.jacksonMapper.writeValue(resp.getWriter(), json);
+
+		this.setResponseContentType(resp);
+
 	}
 
 	@Override
@@ -75,5 +78,12 @@ public class DataServlet extends HttpServlet {
 		JsonNode readTree = this.jacksonMapper.readTree(req.getInputStream());
 		System.out.println(readTree);
 
+		this.setResponseContentType(resp);
+
 	}
+
+	private void setResponseContentType(HttpServletResponse resp) {
+		resp.setContentType("application/json;charset=utf-8");
+	}
+
 }
