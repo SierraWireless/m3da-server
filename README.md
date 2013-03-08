@@ -21,10 +21,10 @@ start it using the command
 
 You can start connecting your M3DA client on the TCP port 44900 (IANA official port for M3DA).
 
-REST API
+REST READ API
 --------
 
-You can see all the received data for a given client using the following URL : http://127.0.0.1:8080/data/{client identifier}
+You can see all the received data for a given client by GETing the URL : http://127.0.0.1:8080/data/{client identifier}
  
 The client identifier is the value of "agent.config.agent.deviceId" in your mihini installation.
 
@@ -51,5 +51,29 @@ RESULT :
          ]
       }
    ]
+}
+```
+
+REST WRITE API
+--------
+
+You can push data to a given client by POSTing to the following URL : http://127.0.0.1:8080/data/{client identifier}
+ 
+The client identifier is the value of "agent.config.agent.deviceId" in your mihini installation.
+
+Examples : 
+> POST  http://127.0.0.1:8080/data/01121979
+
+Content  : 
+ 
+```javascript
+{
+   "settings" : [{
+      "key" : "@sys.commands.ReadNode",
+      "value" : "config"
+   }, {
+      "key" : "@sys.commands.ReadNode",
+      "value" : "update"   
+   }]
 }
 ```
