@@ -12,15 +12,22 @@ package m3da.server.api.mapping;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import m3da.server.api.json.JSystemData;
+import m3da.server.api.json.JSystemReadData;
+import m3da.server.api.json.JSystemWriteData;
+import m3da.server.api.json.JSystemWriteSettings;
 import m3da.server.store.Message;
 
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,7 +42,7 @@ public class Store2JsonDataMapperTest {
 	}
 
 	@Test
-	public void maps_single_received_data() {
+	public void get_maps_single_received_data() {
 
 		Map<Long, List<Message>> lastReceived = new HashMap<Long, List<Message>>();
 		Map<String, List<?>> data = new HashMap<String, List<?>>();
@@ -45,8 +52,8 @@ public class Store2JsonDataMapperTest {
 		Long nanoseconds = now * 1000;
 		lastReceived.put(nanoseconds, Arrays.asList(new Message("@sys.foo", data)));
 
-		Map<String, List<JSystemData>> mapped = mapper.mapReceivedData(lastReceived);
-		JSystemData bar = mapped.get("@sys.foo.bar").get(0);
+		Map<String, List<JSystemReadData>> mapped = mapper.mapReceivedData(lastReceived);
+		JSystemReadData bar = mapped.get("@sys.foo.bar").get(0);
 		assertEquals(1, bar.getValue().size());
 		assertEquals(42, bar.getValue().get(0));
 		assertEquals(String.valueOf(now), bar.getTimestamp());
@@ -54,7 +61,7 @@ public class Store2JsonDataMapperTest {
 	}
 
 	@Test
-	public void converts_byte_buffers_to_utf8_string() {
+	public void get_converts_byte_buffers_to_utf8_string() {
 
 		Map<Long, List<Message>> lastReceived = new HashMap<Long, List<Message>>();
 		Map<String, List<?>> data = new HashMap<String, List<?>>();
@@ -64,8 +71,8 @@ public class Store2JsonDataMapperTest {
 		Long nanoseconds = now * 1000;
 		lastReceived.put(nanoseconds, Arrays.asList(new Message("@sys.foo", data)));
 
-		Map<String, List<JSystemData>> mapped = mapper.mapReceivedData(lastReceived);
-		JSystemData bar = mapped.get("@sys.foo.bar").get(0);
+		Map<String, List<JSystemReadData>> mapped = mapper.mapReceivedData(lastReceived);
+		JSystemReadData bar = mapped.get("@sys.foo.bar").get(0);
 		assertEquals(1, bar.getValue().size());
 		assertEquals("toto", bar.getValue().get(0));
 		assertEquals(String.valueOf(now), bar.getTimestamp());
@@ -73,7 +80,7 @@ public class Store2JsonDataMapperTest {
 	}
 
 	@Test
-	public void maps_several_received_data() {
+	public void get_maps_several_received_data() {
 		Map<Long, List<Message>> lastReceived = new HashMap<Long, List<Message>>();
 		Map<String, List<?>> data = new HashMap<String, List<?>>();
 		data.put("bar", Arrays.asList(42));
@@ -83,13 +90,13 @@ public class Store2JsonDataMapperTest {
 		Long nanoseconds = now * 1000;
 		lastReceived.put(nanoseconds, Arrays.asList(new Message("@sys.foo", data)));
 
-		Map<String, List<JSystemData>> mapped = mapper.mapReceivedData(lastReceived);
-		JSystemData bar = mapped.get("@sys.foo.bar").get(0);
+		Map<String, List<JSystemReadData>> mapped = mapper.mapReceivedData(lastReceived);
+		JSystemReadData bar = mapped.get("@sys.foo.bar").get(0);
 		assertEquals(1, bar.getValue().size());
 		assertEquals(42, bar.getValue().get(0));
 		assertEquals(String.valueOf(now), bar.getTimestamp());
 
-		JSystemData baz = mapped.get("@sys.foo.baz").get(0);
+		JSystemReadData baz = mapped.get("@sys.foo.baz").get(0);
 		assertEquals(1, baz.getValue().size());
 		assertEquals("Hello", baz.getValue().get(0));
 		assertEquals(String.valueOf(now), baz.getTimestamp());
@@ -97,7 +104,7 @@ public class Store2JsonDataMapperTest {
 	}
 
 	@Test
-	public void collects_successive_communications() {
+	public void get_collects_successive_communications() {
 		Map<Long, List<Message>> lastReceived = new HashMap<Long, List<Message>>();
 
 		long now = System.currentTimeMillis();
@@ -112,8 +119,8 @@ public class Store2JsonDataMapperTest {
 		lastReceived.put(comm2, Arrays.asList(new Message("@sys.foo", data2)));
 
 		// Results should be sorted by decreasing timestamps
-		Map<String, List<JSystemData>> mapped = mapper.mapReceivedData(lastReceived);
-		JSystemData bar = mapped.get("@sys.foo.bar").get(0);
+		Map<String, List<JSystemReadData>> mapped = mapper.mapReceivedData(lastReceived);
+		JSystemReadData bar = mapped.get("@sys.foo.bar").get(0);
 		assertEquals(1, bar.getValue().size());
 		assertEquals(43, bar.getValue().get(0));
 		assertEquals(String.valueOf(now + 5000), bar.getTimestamp());
@@ -126,9 +133,46 @@ public class Store2JsonDataMapperTest {
 	}
 
 	@Test
-	public void handles_null_results() {
-		Map<String, List<JSystemData>> mapped = mapper.mapReceivedData(null);
+	public void get_handles_null_results() {
+		Map<String, List<JSystemReadData>> mapped = mapper.mapReceivedData(null);
 		assertEquals(0, mapped.keySet().size());
 	}
 
+	@Test
+	public void post_converts_data_to_m3da_message() {
+
+		JSystemWriteSettings settings = new JSystemWriteSettings(null);
+		settings.setSettings(Arrays.asList(new JSystemWriteData("@sys.greenhouse.humidity", 42),
+				new JSystemWriteData("@sys.greenhouse.msg", "hello"), new JSystemWriteData("@sys.foo.bar", 12)));
+
+		List<Message> dataToSend = mapper.mapDataToSend(settings);
+
+		assertEquals(2, dataToSend.size());
+
+		Message message = dataToSend.get(0);
+		assertEquals("@sys.greenhouse", message.getPath());
+		assertEquals(42, message.getData().get("humidity").get(0));
+
+		ByteBuffer msg = (ByteBuffer) message.getData().get("msg").get(0);
+		assertEquals("hello", new String(msg.array(), Charset.forName("utf8")));
+
+		message = dataToSend.get(1);
+		assertEquals("@sys.foo", message.getPath());
+		assertEquals(12, message.getData().get("bar").get(0));
+
+	}
+
+	@Test
+	public void foo() throws JsonParseException, JsonMappingException, IOException {
+		String str = "{ \"settings\" : [ { \"key\" : \"foo\", \"value\" : \"bar\" } ] }";
+		str = "{ \"settings\" : [{\"key\":\"foo\",\"value\":\"bar\"}]}";
+
+		ObjectMapper mapper = new ObjectMapper();
+		JSystemWriteSettings readValue = mapper.readValue(str, JSystemWriteSettings.class);
+
+		JSystemWriteData d = readValue.getSettings().get(0);
+
+		System.out.println(d.getKey());
+
+	}
 }

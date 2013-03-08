@@ -19,12 +19,12 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import m3da.server.api.json.JSystemData;
+import m3da.server.api.json.JSystemReadData;
+import m3da.server.api.json.JSystemWriteSettings;
 import m3da.server.api.mapping.Store2JsonDataMapper;
 import m3da.server.store.Message;
 import m3da.server.store.StoreService;
 
-import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +58,7 @@ public class DataServlet extends HttpServlet {
 		LOG.info("system " + system);
 
 		Map<Long, List<Message>> data = store.lastReceivedData(system);
-		Map<String, List<JSystemData>> json = this.store2JsonMapper.mapReceivedData(data);
+		Map<String, List<JSystemReadData>> json = this.store2JsonMapper.mapReceivedData(data);
 
 		this.jacksonMapper.writeValue(resp.getWriter(), json);
 
@@ -74,9 +74,12 @@ public class DataServlet extends HttpServlet {
 			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "no system id in the path");
 			return;
 		}
+		system = system.substring(1);
 
-		JsonNode readTree = this.jacksonMapper.readTree(req.getInputStream());
-		System.out.println(readTree);
+		JSystemWriteSettings settings = this.jacksonMapper.readValue(req.getInputStream(), JSystemWriteSettings.class);
+
+		List<Message> newData = store2JsonMapper.mapDataToSend(settings);
+		store.enqueueDataToSend(system, newData);
 
 		this.setResponseContentType(resp);
 

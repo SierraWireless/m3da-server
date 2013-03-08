@@ -13,40 +13,39 @@ package m3da.server.api.json;
 import java.util.List;
 
 /**
- * JSON bean for a single data point.
+ * TODO Comment this class
  */
-public class JSystemData {
-	private List<?> value;
-	private String timestamp;
+public class JSystemWriteSettings {
+
+	private List<JSystemWriteData> settings;
 
 	/**
-	 * @return the value
+	 * Dummy constructor needed by jackson
 	 */
-	public List<?> getValue() {
-		return value;
+	public JSystemWriteSettings() {
 	}
 
 	/**
-	 * @param value
-	 *            the value to set
+	 * @param settings
 	 */
-	public void setValue(List<?> value) {
-		this.value = value;
+	public JSystemWriteSettings(List<JSystemWriteData> settings) {
+		super();
+		this.settings = settings;
 	}
 
 	/**
-	 * @return the timestamp
+	 * @return the settings
 	 */
-	public String getTimestamp() {
-		return timestamp;
+	public List<JSystemWriteData> getSettings() {
+		return settings;
 	}
 
 	/**
-	 * @param timestamp
-	 *            the timestamp to set
+	 * @param settings
+	 *            the settings to set
 	 */
-	public void setTimestamp(String timestamp) {
-		this.timestamp = timestamp;
+	public void setSettings(List<JSystemWriteData> settings) {
+		this.settings = settings;
 	}
 
 }

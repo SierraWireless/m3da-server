@@ -11,15 +11,21 @@
 package m3da.server.api.mapping;
 
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import m3da.server.api.json.JSystemData;
+import m3da.server.api.json.JSystemReadData;
+import m3da.server.api.json.JSystemWriteData;
+import m3da.server.api.json.JSystemWriteSettings;
 import m3da.server.store.Message;
 
 /**
@@ -35,9 +41,9 @@ public class Store2JsonDataMapper {
 	 * 
 	 * @param lastReceived
 	 */
-	public Map<String, List<JSystemData>> mapReceivedData(Map<Long, List<Message>> data) {
+	public Map<String, List<JSystemReadData>> mapReceivedData(Map<Long, List<Message>> data) {
 
-		Map<String, List<JSystemData>> res = new HashMap<String, List<JSystemData>>();
+		Map<String, List<JSystemReadData>> res = new HashMap<String, List<JSystemReadData>>();
 
 		if (data == null) {
 			return res;
@@ -58,18 +64,18 @@ public class Store2JsonDataMapper {
 					String key = received.getKey();
 
 					String dataId = path + "." + key;
-					List<JSystemData> resData = null;
+					List<JSystemReadData> resData = null;
 					if (res.containsKey(dataId)) {
 						resData = res.get(dataId);
 					} else {
-						resData = new ArrayList<JSystemData>();
+						resData = new ArrayList<JSystemReadData>();
 						res.put(dataId, resData);
 					}
 
-					JSystemData jSystemData = new JSystemData();
+					JSystemReadData jSystemData = new JSystemReadData();
 					jSystemData.setTimestamp(timestampInSeconds);
 
-					jSystemData.setValue(this.transformStrings(received.getValue()));
+					jSystemData.setValue(this.byteBuffers2Strings(received.getValue()));
 
 					resData.add(jSystemData);
 
@@ -79,7 +85,7 @@ public class Store2JsonDataMapper {
 
 		}
 
-		for (Map.Entry<String, List<JSystemData>> resEntry : res.entrySet()) {
+		for (Map.Entry<String, List<JSystemReadData>> resEntry : res.entrySet()) {
 			this.sortJSystemDataList(resEntry.getValue());
 		}
 
@@ -92,10 +98,10 @@ public class Store2JsonDataMapper {
 	 * 
 	 * @param jSystemDataList
 	 */
-	private void sortJSystemDataList(List<JSystemData> jSystemDataList) {
-		Comparator<JSystemData> comp = new Comparator<JSystemData>() {
+	private void sortJSystemDataList(List<JSystemReadData> jSystemDataList) {
+		Comparator<JSystemReadData> comp = new Comparator<JSystemReadData>() {
 			@Override
-			public int compare(JSystemData data1, JSystemData data2) {
+			public int compare(JSystemReadData data1, JSystemReadData data2) {
 				// data2 first to get decreasing timestamps
 				return (data2.getTimestamp().compareTo(data1.getTimestamp()));
 			}
@@ -109,7 +115,7 @@ public class Store2JsonDataMapper {
 	 * @param values
 	 * @return the list of values, with ByteBuffers converted to utf-8 strings
 	 */
-	private List<Object> transformStrings(List<?> values) {
+	private List<Object> byteBuffers2Strings(List<?> values) {
 
 		List<Object> res = new ArrayList<Object>();
 
@@ -125,4 +131,58 @@ public class Store2JsonDataMapper {
 		return res;
 	}
 
+	/**
+	 * @param settings
+	 * @return
+	 */
+	public List<Message> mapDataToSend(JSystemWriteSettings settings) {
+
+		Map<String, Message> messagesByPath = new HashMap<String, Message>();
+
+		for (JSystemWriteData writeData : settings.getSettings()) {
+
+			String key = writeData.getKey();
+
+			int lastDot = key.lastIndexOf(".");
+			if (lastDot != -1) {
+				String path = key.substring(0, lastDot);
+				String id = key.substring(lastDot + 1);
+
+				Map<String, List<?>> data = null;
+				if (messagesByPath.containsKey(path)) {
+					data = messagesByPath.get(path).getData();
+				} else {
+					data = new HashMap<String, List<?>>();
+					Message message = new Message(path, data);
+					messagesByPath.put(path, message);
+				}
+				data.put(id, Arrays.asList(string2ByteBuffer(writeData.getValue())));
+
+			}
+
+		}
+
+		List<Message> res = new ArrayList<Message>();
+		res.addAll(messagesByPath.values());
+		return res;
+
+	}
+
+	private Object string2ByteBuffer(Object o) {
+
+		Charset charset = Charset.forName("utf8");
+		CharsetEncoder encoder = charset.newEncoder();
+
+		if (o instanceof String) {
+			String s = (String) o;
+			CharBuffer charBuffer = CharBuffer.wrap(s.toCharArray());
+			try {
+				return encoder.encode(charBuffer);
+			} catch (CharacterCodingException e) {
+				return o;
+			}
+		} else {
+			return o;
+		}
+	}
 }
