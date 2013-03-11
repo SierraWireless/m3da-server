@@ -49,11 +49,11 @@ public class DataServlet extends HttpServlet {
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		String system = req.getPathInfo();
+		this.setResponseContentType(resp);
 		if (system == null) {
 			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "no system id in the path");
 			return;
 		}
-		this.setResponseContentType(resp);
 		system = system.substring(1);
 		LOG.info("system " + system);
 
@@ -65,16 +65,13 @@ public class DataServlet extends HttpServlet {
 
 	@Override
 	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-
+		this.setResponseContentType(resp);
 		String system = req.getPathInfo();
 		if (system == null) {
 			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "no system id in the path");
 			return;
 		}
-		this.setResponseContentType(resp);
-
 		system = system.substring(1);
-
 		JSystemWriteSettings settings = this.jacksonMapper.readValue(req.getInputStream(), JSystemWriteSettings.class);
 
 		List<Message> newData = store2JsonMapper.mapDataToSend(settings);
