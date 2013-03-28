@@ -10,8 +10,13 @@ The client : http://www.eclipse.org/mihini
 Compiling 
 ---------
 
+Compile all the project
+
+> mvn install
+
 With maven generate a runnable uber jar using the command :
- 
+
+> cd server
 > mvn assembly:assembly -DdescriptorId=jar-with-dependencies
  
 
