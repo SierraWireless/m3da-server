@@ -74,11 +74,11 @@ Content  :
 ```javascript
 {
    "settings" : [{
-      "key" : "@sys.commands.ReadNode",
-      "value" : "config"
+      "key" : "@sys.commands.ReadNode.key1",
+      "value" : "key1value"
    }, {
-      "key" : "@sys.commands.ReadNode",
-      "value" : "update"   
+      "key" : "@sys.commands.ReadNode.key2",
+      "value" : "key2value"   
    }]
 }
 ```
