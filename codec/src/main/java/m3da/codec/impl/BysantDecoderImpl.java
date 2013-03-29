@@ -10,11 +10,12 @@
  ******************************************************************************/
 package m3da.codec.impl;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -42,9 +43,6 @@ import m3da.codec.impl.encoding.UintStrCtxEncoding;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
-import com.google.common.collect.Maps;
 
 /**
  * A Bysant byte stream decoder. <br>
@@ -521,7 +519,7 @@ public class BysantDecoderImpl implements BysantDecoder {
             return decodeUntypedMapBody(buffer, mapSize);
         } else if (opCode == encoding.nullTerminatedUntypedMapOpCode()) {
             LOG.trace("null terminated untyped map");
-            final Map<Object, Object> map = Maps.newHashMap();
+            final Map<Object, Object> map = new HashMap<Object, Object>();
             for (;;) {
                 // read key
                 Object key = decodeOne(BysantContext.UINTS_AND_STRS.getEncoding(), buffer);
@@ -530,7 +528,11 @@ public class BysantDecoderImpl implements BysantDecoder {
                 }
                 if (key instanceof ByteBuffer) {
                     // convert as string, we don't give a shit about binary map key
-                    key = new String(((ByteBuffer) key).array(), Charsets.UTF_8);
+                    try {
+                        key = new String(((ByteBuffer) key).array(), "UTF-8");
+                    } catch (UnsupportedEncodingException e) {
+                        throw new IllegalStateException(e);
+                    }
                 }
 
                 // read object
@@ -565,14 +567,18 @@ public class BysantDecoderImpl implements BysantDecoder {
     /** decode a map body of untyped pair following the bysant spec */
     private Map<Object, Object> decodeUntypedMapBody(final ByteBuffer buffer, final int mapSize)
             throws DecoderException {
-        final Map<Object, Object> map = Maps.newHashMapWithExpectedSize(mapSize);
+        final Map<Object, Object> map = new HashMap<Object, Object>(mapSize);
         for (int i = 0; i < mapSize; i++) {
             // read key
             LOG.trace("decode key");
             Object key = decodeOne(BysantContext.UINTS_AND_STRS.getEncoding(), buffer);
             if (key instanceof ByteBuffer) {
                 // convert as string, we don't give a shit about binary map key
-                key = new String(((ByteBuffer) key).array(), Charsets.UTF_8);
+                try {
+                    key = new String(((ByteBuffer) key).array(), "UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                    throw new IllegalStateException(e);
+                }
             }
 
             // read object
@@ -630,12 +636,10 @@ public class BysantDecoderImpl implements BysantDecoder {
 
             String path;
             try {
-                path = Charsets.UTF_8
-                        .newDecoder()
-                        .decode(decodeStringAsBytes((StringEncoding) BysantContext.UINTS_AND_STRS.getEncoding(), buffer))
-                        .toString();
-            } catch (final CharacterCodingException e) {
-                throw new DecoderException("unsupported non UTF8 char in AWTDA3Envelope path field", e);
+                path = new String(decodeStringAsBytes((StringEncoding) BysantContext.UINTS_AND_STRS.getEncoding(),
+                        buffer).array(), "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new IllegalStateException(e);
             }
 
             final Number ticket = decodeUint((UintEncoding) BysantContext.UINTS_AND_STRS.getEncoding(), buffer);
@@ -669,10 +673,10 @@ public class BysantDecoderImpl implements BysantDecoder {
                 if (dataBin == null) {
                     data = null;
                 } else {
-                    data = Charsets.UTF_8.newDecoder().decode(dataBin).toString();
+                    data = new String(dataBin.array(), "UTF-8");
                 }
-            } catch (final CharacterCodingException e) {
-                throw new DecoderException("unsupported non UTF8 char in AWTDA3Response data field", e);
+            } catch (final UnsupportedEncodingException e) {
+                throw new IllegalStateException(e);
             }
             return new M3daResponse(ticketId, status, data);
         } else {
