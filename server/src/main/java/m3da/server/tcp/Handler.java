@@ -18,16 +18,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import m3da.server.codec.BysantDecoder;
-import m3da.server.codec.BysantEncoder;
-import m3da.server.codec.DecoderOutput;
-import m3da.server.codec.HeaderKey;
-import m3da.server.codec.M3daCodecService;
-import m3da.server.codec.dto.M3daDeltasVector;
-import m3da.server.codec.dto.M3daEnvelope;
-import m3da.server.codec.dto.M3daMessage;
-import m3da.server.codec.dto.M3daPdu;
-import m3da.server.codec.dto.M3daQuasiPeriodicVector;
+import m3da.codec.BysantDecoder;
+import m3da.codec.BysantEncoder;
+import m3da.codec.DecoderOutput;
+import m3da.codec.HeaderKey;
+import m3da.codec.M3daCodecService;
+import m3da.codec.dto.M3daDeltasVector;
+import m3da.codec.dto.M3daEnvelope;
+import m3da.codec.dto.M3daMessage;
+import m3da.codec.dto.M3daPdu;
+import m3da.codec.dto.M3daQuasiPeriodicVector;
 import m3da.server.store.Message;
 import m3da.server.store.StoreService;
 

@@ -13,8 +13,8 @@ package m3da.server.tcp;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
-import m3da.server.codec.M3daCodecService;
-import m3da.server.codec.impl.M3daCodecServiceImpl;
+import m3da.codec.M3daCodecService;
+import m3da.codec.impl.M3daCodecServiceImpl;
 import m3da.server.store.StoreService;
 
 import org.apache.mina.filter.executor.ExecutorFilter;

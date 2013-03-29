@@ -12,11 +12,11 @@ package m3da.server.tcp;
 
 import java.nio.ByteBuffer;
 
-import m3da.server.codec.M3daCodecService;
-import m3da.server.codec.DecoderOutput;
-import m3da.server.codec.EnvelopeDecoder;
-import m3da.server.codec.EnvelopeEncoder;
-import m3da.server.codec.dto.M3daEnvelope;
+import m3da.codec.DecoderOutput;
+import m3da.codec.EnvelopeDecoder;
+import m3da.codec.EnvelopeEncoder;
+import m3da.codec.M3daCodecService;
+import m3da.codec.dto.M3daEnvelope;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.core.filterchain.IoFilter;
