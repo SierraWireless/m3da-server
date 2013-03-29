@@ -34,17 +34,22 @@ public class InMemoryStoreServiceTest {
 		List<Message> msgC = new ArrayList<Message>(1);
 
 		// run
-		service.enqueueReceivedData("clientId", 1, msgA);
-		service.enqueueReceivedData("clientId", 2, msgB);
-		service.enqueueReceivedData("clientId", 3, msgC);
+		service.enqueueReceivedData("clientId", 1, new Envelope(1L, msgA));
+		service.enqueueReceivedData("clientId", 2, new Envelope(2L, msgB));
+		service.enqueueReceivedData("clientId", 3, new Envelope(3L, msgC));
 
 		// verify
-		Map<Long, List<Message>> data = service.lastReceivedData("clientId");
+		Map<Long, Envelope> data = service.lastReceivedData("clientId");
 		assertEquals(3, data.size());
-		assertEquals(msgA, data.get(1L));
-		assertEquals(msgB, data.get(2L));
-		assertEquals(msgC, data.get(3L));
-
+		assertEquals(msgA, data.get(1L).getMessages());
+		assertEquals(Long.valueOf(1L), data.get(1L).getReceptionTime());
+		
+		assertEquals(msgB, data.get(2L).getMessages());
+		assertEquals(Long.valueOf(2L), data.get(2L).getReceptionTime());
+		
+		assertEquals(msgC, data.get(3L).getMessages());
+		assertEquals(Long.valueOf(3L), data.get(3L).getReceptionTime());
+		
 	}
 
 	@Test
@@ -57,17 +62,23 @@ public class InMemoryStoreServiceTest {
 		List<Message> msgD = new ArrayList<Message>(1);
 
 		// run
-		service.enqueueReceivedData("clientId", 1, msgA);
-		service.enqueueReceivedData("clientId", 2, msgB);
-		service.enqueueReceivedData("clientId", 3, msgC);
-		service.enqueueReceivedData("clientId", 4, msgD);
+		service.enqueueReceivedData("clientId", 1, new Envelope(1L, msgA));
+		service.enqueueReceivedData("clientId", 2, new Envelope(2L, msgB));
+		service.enqueueReceivedData("clientId", 3, new Envelope(3L, msgC));
+		service.enqueueReceivedData("clientId", 4, new Envelope(4L, msgD));
 
 		// verify
-		Map<Long, List<Message>> data = service.lastReceivedData("clientId");
+		Map<Long, Envelope> data = service.lastReceivedData("clientId");
 		assertEquals(3, data.size());
-		assertEquals(msgB, data.get(2L));
-		assertEquals(msgC, data.get(3L));
-		assertEquals(msgD, data.get(4L));
+		assertEquals(msgB, data.get(2L).getMessages());
+		assertEquals(Long.valueOf(2L), data.get(2L).getReceptionTime());
+		
+		assertEquals(msgC, data.get(3L).getMessages());
+		assertEquals(Long.valueOf(3L), data.get(3L).getReceptionTime());
+		
+		assertEquals(msgD, data.get(4L).getMessages());
+		assertEquals(Long.valueOf(4L), data.get(4L).getReceptionTime());
+		
 	}
 
 	@Test

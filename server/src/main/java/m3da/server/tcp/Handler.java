@@ -28,6 +28,7 @@ import m3da.codec.dto.M3daEnvelope;
 import m3da.codec.dto.M3daMessage;
 import m3da.codec.dto.M3daPdu;
 import m3da.codec.dto.M3daQuasiPeriodicVector;
+import m3da.server.store.Envelope;
 import m3da.server.store.Message;
 import m3da.server.store.StoreService;
 
@@ -99,7 +100,7 @@ public class Handler extends IoHandlerAdapter {
 						data.add(new Message(msg.getPath(), bodyData));
 					}
 				}
-				store.enqueueReceivedData(comId, System.nanoTime(), data);
+				store.enqueueReceivedData(comId, System.nanoTime(), new Envelope(System.currentTimeMillis(), data));
 			}
 
 			// do we have pending data for this client ?

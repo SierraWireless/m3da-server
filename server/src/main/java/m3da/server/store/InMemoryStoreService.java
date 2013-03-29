@@ -44,25 +44,25 @@ public class InMemoryStoreService implements StoreService {
 		this.maxMessage = maxMessage;
 	}
 
-	private Map<String /* client id */, Map<Long /* reception nanos date */, List<Message>>> receivedData = new HashMap<String, Map<Long, List<Message>>>();
+	private Map<String /* client id */, Map<Long /* reception nanos date */, Envelope>> receivedData = new HashMap<String, Map<Long, Envelope>>();
 
 	private Map<String /* client id */, Queue<Message> /* message waiting to be sent */> dataToSend = new HashMap<String, Queue<Message>>();
 
 	@Override
-	public synchronized void enqueueReceivedData(String clientId, long receptionInNanoSec, List<Message> newData) {
-		LOG.debug("enqueueReceivedData( clientId = {}, receptionInnanoSec = {}, newData = {} )", clientId, receptionInNanoSec, newData);
+	public synchronized void enqueueReceivedData(String clientId, long receptionInNanoSec, Envelope envelope) {
+		LOG.debug("enqueueReceivedData( clientId = {}, receptionInnanoSec = {}, newData = {} )", clientId, receptionInNanoSec, envelope.getMessages());
 
-		Map<Long, List<Message>> msgQueue = receivedData.get(clientId);
+		Map<Long, Envelope> msgQueue = receivedData.get(clientId);
 		if (msgQueue == null) {
 			/** we use the TreeMap because we need to remove the element in natural key order */
-			msgQueue = new TreeMap<Long, List<Message>>();
+			msgQueue = new TreeMap<Long, Envelope>();
 			receivedData.put(clientId, msgQueue);
 		}
 
-		msgQueue.put(receptionInNanoSec, newData);
+		msgQueue.put(receptionInNanoSec, envelope);
 
 		// check if we have too much received data
-		Iterator<Entry<Long, List<Message>>> iterator = msgQueue.entrySet().iterator();
+		Iterator<Entry<Long, Envelope>> iterator = msgQueue.entrySet().iterator();
 		while (msgQueue.size() - maxMessage > 0 && iterator.next() != null) {
 			// we should purge some message
 			iterator.remove();
@@ -70,7 +70,7 @@ public class InMemoryStoreService implements StoreService {
 	}
 
 	@Override
-	public synchronized Map<Long, List<Message>> lastReceivedData(String clientId) {
+	public synchronized Map<Long, Envelope> lastReceivedData(String clientId) {
 		LOG.debug("lastReceivedData( clientid = {} )", clientId);
 		return receivedData.get(clientId);
 	}

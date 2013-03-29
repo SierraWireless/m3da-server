@@ -28,7 +28,7 @@ public interface StoreService {
 	 * @param newData
 	 *            the received M3DA data
 	 */
-	public void enqueueReceivedData(String clientId, long receptionInNanoSec, List<Message> newData);
+	public void enqueueReceivedData(String clientId, long receptionInNanoSec, Envelope newData);
 
 	/**
 	 * Get the last received data for a given client
@@ -37,7 +37,7 @@ public interface StoreService {
 	 *            the client unique identifier
 	 * @return the last N received data from the given client
 	 */
-	public Map<Long, List<Message>> lastReceivedData(String clientId);
+	public Map<Long, Envelope> lastReceivedData(String clientId);
 
 	/**
 	 * add some data to be sent to the client, as soon it reconnect to the server.

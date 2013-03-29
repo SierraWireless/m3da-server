@@ -22,6 +22,7 @@ import javax.servlet.http.HttpServletResponse;
 import m3da.server.api.json.JSystemReadData;
 import m3da.server.api.json.JSystemWriteSettings;
 import m3da.server.api.mapping.Store2JsonDataMapper;
+import m3da.server.store.Envelope;
 import m3da.server.store.Message;
 import m3da.server.store.StoreService;
 
@@ -57,7 +58,7 @@ public class DataServlet extends HttpServlet {
 		system = system.substring(1);
 		LOG.info("system " + system);
 
-		Map<Long, List<Message>> data = store.lastReceivedData(system);
+		Map<Long, Envelope> data = store.lastReceivedData(system);
 		Map<String, List<JSystemReadData>> json = this.store2JsonMapper.mapReceivedData(data);
 
 		this.jacksonMapper.writeValue(resp.getWriter(), json);

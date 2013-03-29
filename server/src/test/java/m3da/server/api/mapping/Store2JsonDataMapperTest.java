@@ -23,6 +23,7 @@ import java.util.Map;
 import m3da.server.api.json.JSystemReadData;
 import m3da.server.api.json.JSystemWriteData;
 import m3da.server.api.json.JSystemWriteSettings;
+import m3da.server.store.Envelope;
 import m3da.server.store.Message;
 
 import org.codehaus.jackson.JsonParseException;
@@ -44,13 +45,12 @@ public class Store2JsonDataMapperTest {
 	@Test
 	public void get_maps_single_received_data() {
 
-		Map<Long, List<Message>> lastReceived = new HashMap<Long, List<Message>>();
 		Map<String, List<?>> data = new HashMap<String, List<?>>();
 		data.put("bar", Arrays.asList(42));
 
 		long now = System.currentTimeMillis();
-		Long nanoseconds = now * 1000;
-		lastReceived.put(nanoseconds, Arrays.asList(new Message("@sys.foo", data)));
+
+		Map<Long, Envelope> lastReceived = makeEventlope(data, now);
 
 		Map<String, List<JSystemReadData>> mapped = mapper.mapReceivedData(lastReceived);
 		JSystemReadData bar = mapped.get("@sys.foo.bar").get(0);
@@ -63,13 +63,11 @@ public class Store2JsonDataMapperTest {
 	@Test
 	public void get_converts_byte_buffers_to_utf8_string() {
 
-		Map<Long, List<Message>> lastReceived = new HashMap<Long, List<Message>>();
 		Map<String, List<?>> data = new HashMap<String, List<?>>();
 		data.put("bar", Arrays.asList(ByteBuffer.wrap("toto".getBytes())));
-
 		long now = System.currentTimeMillis();
-		Long nanoseconds = now * 1000;
-		lastReceived.put(nanoseconds, Arrays.asList(new Message("@sys.foo", data)));
+		
+		Map<Long, Envelope> lastReceived = makeEventlope(data, now);
 
 		Map<String, List<JSystemReadData>> mapped = mapper.mapReceivedData(lastReceived);
 		JSystemReadData bar = mapped.get("@sys.foo.bar").get(0);
@@ -79,16 +77,22 @@ public class Store2JsonDataMapperTest {
 
 	}
 
+	private Map<Long, Envelope> makeEventlope(Map<String, List<?>> data,
+			long now) {
+		Map<Long, Envelope> lastReceived = new HashMap<Long, Envelope>();
+		Long nanoseconds = now * 1000;
+		lastReceived.put(nanoseconds, new Envelope(now, Arrays.asList(new Message("@sys.foo", data))));
+		return lastReceived;
+	}
+
 	@Test
 	public void get_maps_several_received_data() {
-		Map<Long, List<Message>> lastReceived = new HashMap<Long, List<Message>>();
+		long now = System.currentTimeMillis();
 		Map<String, List<?>> data = new HashMap<String, List<?>>();
 		data.put("bar", Arrays.asList(42));
 		data.put("baz", Arrays.asList("Hello"));
 
-		long now = System.currentTimeMillis();
-		Long nanoseconds = now * 1000;
-		lastReceived.put(nanoseconds, Arrays.asList(new Message("@sys.foo", data)));
+		Map<Long, Envelope> lastReceived = makeEventlope(data, now);
 
 		Map<String, List<JSystemReadData>> mapped = mapper.mapReceivedData(lastReceived);
 		JSystemReadData bar = mapped.get("@sys.foo.bar").get(0);
@@ -105,18 +109,19 @@ public class Store2JsonDataMapperTest {
 
 	@Test
 	public void get_collects_successive_communications() {
-		Map<Long, List<Message>> lastReceived = new HashMap<Long, List<Message>>();
-
 		long now = System.currentTimeMillis();
-		Long comm1 = now * 1000;
+		
+		Map<Long, Envelope> lastReceived = new HashMap<Long, Envelope>();
+
+		Long comm1 = now;
 		Map<String, List<?>> data1 = new HashMap<String, List<?>>();
 		data1.put("bar", Arrays.asList(42));
-		lastReceived.put(comm1, Arrays.asList(new Message("@sys.foo", data1)));
+		lastReceived.put(comm1, new Envelope(comm1, Arrays.asList(new Message("@sys.foo", data1))));
 
-		Long comm2 = (now + 5000) * 1000;
+		Long comm2 = (now + 5000);
 		Map<String, List<?>> data2 = new HashMap<String, List<?>>();
 		data2.put("bar", Arrays.asList(43));
-		lastReceived.put(comm2, Arrays.asList(new Message("@sys.foo", data2)));
+		lastReceived.put(comm2, new Envelope(comm2, Arrays.asList(new Message("@sys.foo", data2))));
 
 		// Results should be sorted by decreasing timestamps
 		Map<String, List<JSystemReadData>> mapped = mapper.mapReceivedData(lastReceived);

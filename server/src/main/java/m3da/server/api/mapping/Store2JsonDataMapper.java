@@ -26,6 +26,7 @@ import java.util.Map;
 import m3da.server.api.json.JSystemReadData;
 import m3da.server.api.json.JSystemWriteData;
 import m3da.server.api.json.JSystemWriteSettings;
+import m3da.server.store.Envelope;
 import m3da.server.store.Message;
 
 /**
@@ -41,7 +42,7 @@ public class Store2JsonDataMapper {
 	 * 
 	 * @param lastReceived
 	 */
-	public Map<String, List<JSystemReadData>> mapReceivedData(Map<Long, List<Message>> data) {
+	public Map<String, List<JSystemReadData>> mapReceivedData(Map<Long, Envelope> data) {
 
 		Map<String, List<JSystemReadData>> res = new HashMap<String, List<JSystemReadData>>();
 
@@ -49,12 +50,12 @@ public class Store2JsonDataMapper {
 			return res;
 		}
 
-		for (Map.Entry<Long, List<Message>> e : data.entrySet()) {
+		for (Map.Entry<Long, Envelope> e : data.entrySet()) {
 
-			Long nanoseconds = e.getKey();
-			String timestampInSeconds = String.valueOf(nanoseconds / 1000);
+			Envelope envelope = e.getValue();
+			String timestampInMs = String.valueOf(envelope.getReceptionTime());
 
-			for (Message message : e.getValue()) {
+			for (Message message : envelope.getMessages()) {
 
 				String path = message.getPath();
 				Map<String, List<?>> pathData = message.getData();
@@ -73,7 +74,7 @@ public class Store2JsonDataMapper {
 					}
 
 					JSystemReadData jSystemData = new JSystemReadData();
-					jSystemData.setTimestamp(timestampInSeconds);
+					jSystemData.setTimestamp(timestampInMs);
 
 					jSystemData.setValue(this.byteBuffers2Strings(received.getValue()));
 
