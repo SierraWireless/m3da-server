@@ -20,6 +20,7 @@
     <modules>
         <module>codec</module>
         <module>server</module>
+        <module>client</module>
     </modules>
 
     <dependencyManagement>
