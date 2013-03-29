@@ -8,25 +8,11 @@
  * Contributors:
  *     Sierra Wireless - initial API and implementation
  ******************************************************************************/
-package m3da.client;
-
-import java.io.IOException;
-
-import m3da.codec.DecoderException;
-import m3da.codec.dto.M3daBodyMessage;
-import m3da.codec.dto.M3daEnvelope;
+package m3da.codec.dto;
 
 /**
- * 
- * M3DA client for sending and receiving {@link M3daEnvelope} from a server.
- * 
+ * Marker interface for message to be place in te M3daEnvelope.
  */
-public interface M3daClient {
+public interface M3daBodyMessage extends M3daPdu {
 
-    public void connect() throws IOException;
-
-    public M3daBodyMessage[] sendEnvelope(M3daBodyMessage[] messages) throws IOException, DecoderException,
-            M3daServerException;
-
-    public void close() throws IOException;
 }

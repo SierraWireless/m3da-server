@@ -16,37 +16,49 @@ package m3da.codec;
  */
 public enum StatusCode {
 
-	/** Everything went fine */
-	OK(200),
+    /** Everything went fine */
+    OK(200),
 
-	/** Server side unexpected error */
-	UNEXPECTED_ERROR(500),
-	/** Server can't answer to the request, try later (e.g. : quota exceeded) */
-	SERVICE_UNAVAIBLE(503),
-	/** Malformed request */
-	BAD_REQUEST(400),
-	/** Unauthorized (usually happens when the credentials are not correct) */
-	UNAUTHORIZED(401),
-	/** This system is not allowed to communicate, authentication will not help */
-	FORBIDDEN(403),
-	/** Authentication required (usually happens when no credentials were provided) */
-	AUTHENTICATION_REQUIRED(407),
+    /** Server side unexpected error */
+    UNEXPECTED_ERROR(500),
+    /** Server can't answer to the request, try later (e.g. : quota exceeded) */
+    SERVICE_UNAVAIBLE(503),
+    /** Malformed request */
+    BAD_REQUEST(400),
+    /** Unauthorized (usually happens when the credentials are not correct) */
+    UNAUTHORIZED(401),
+    /** This system is not allowed to communicate, authentication will not help */
+    FORBIDDEN(403),
+    /** Authentication required (usually happens when no credentials were provided) */
+    AUTHENTICATION_REQUIRED(407),
 
-	/**
-	 * The payload data need to be encrypted (usually happens when a peer try to send data without encryption and the other require the data to be
-	 * encrypted)
-	 */
-	ENCRYPTION_NEEDED(450),
-	/** the shortcut map version is not compatible (anyway we don't support this feature) */
-	SHORTCUT_MAP_ERROR(451);
+    /**
+     * The payload data need to be encrypted (usually happens when a peer try to send data without encryption and the
+     * other require the data to be encrypted)
+     */
+    ENCRYPTION_NEEDED(450),
+    /** the shortcut map version is not compatible (anyway we don't support this feature) */
+    SHORTCUT_MAP_ERROR(451);
 
-	private final int code;
+    private final int code;
 
-	private StatusCode(final int code) {
-		this.code = code;
-	}
+    private StatusCode(final int code) {
+        this.code = code;
+    }
 
-	public int getCode() {
-		return code;
-	}
+    public int getCode() {
+        return code;
+    }
+
+    /**
+     * Find the status code corresponding to the given code (or <code>null</code> if not found)
+     */
+    public static StatusCode fromCode(int code) {
+        for (StatusCode s : StatusCode.values()) {
+            if (s.getCode() == code) {
+                return s;
+            }
+        }
+        return null;
+    }
 }

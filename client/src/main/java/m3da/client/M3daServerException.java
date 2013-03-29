@@ -10,23 +10,22 @@
  ******************************************************************************/
 package m3da.client;
 
-import java.io.IOException;
-
-import m3da.codec.DecoderException;
-import m3da.codec.dto.M3daBodyMessage;
-import m3da.codec.dto.M3daEnvelope;
+import m3da.codec.StatusCode;
 
 /**
- * 
- * M3DA client for sending and receiving {@link M3daEnvelope} from a server.
- * 
+ * Error received sent by the server.
  */
-public interface M3daClient {
+@SuppressWarnings("serial")
+public class M3daServerException extends Exception {
 
-    public void connect() throws IOException;
+    private final StatusCode statusCode;
 
-    public M3daBodyMessage[] sendEnvelope(M3daBodyMessage[] messages) throws IOException, DecoderException,
-            M3daServerException;
+    public M3daServerException(StatusCode statusCode) {
+        super("status " + statusCode.name() + " (" + statusCode.getCode() + ")");
+        this.statusCode = statusCode;
+    }
 
-    public void close() throws IOException;
+    public StatusCode getStatusCode() {
+        return statusCode;
+    }
 }
