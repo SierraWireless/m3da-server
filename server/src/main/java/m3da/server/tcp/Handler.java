@@ -45,114 +45,123 @@ import com.google.common.collect.Lists;
  */
 public class Handler extends IoHandlerAdapter {
 
-	private static final Logger LOG = LoggerFactory.getLogger(Handler.class);
-	private StoreService store;
+    private static final Logger LOG = LoggerFactory.getLogger(Handler.class);
+    private StoreService store;
 
-	private M3daCodecService codec;
+    private M3daCodecService codec;
 
-	public Handler(StoreService store, M3daCodecService codec) {
-		this.store = store;
-		this.codec = codec;
-	}
+    public Handler(StoreService store, M3daCodecService codec) {
+        this.store = store;
+        this.codec = codec;
+    }
 
-	@Override
-	public void exceptionCaught(IoSession session, Throwable cause) throws Exception {
-		LOG.error("unexpected exception : ", cause);
-		session.close(true);
-	}
+    @Override
+    public void exceptionCaught(IoSession session, Throwable cause) throws Exception {
+        LOG.error("unexpected exception : ", cause);
+        session.close(true);
+    }
 
-	@Override
-	public void sessionOpened(IoSession session) throws Exception {
+    @Override
+    public void sessionOpened(IoSession session) throws Exception {
 
-		session.setAttribute("decoder", codec.createBodyDecoder());
-		session.setAttribute("encoder", codec.createBodyEncoder());
-	}
+        session.setAttribute("decoder", codec.createBodyDecoder());
+        session.setAttribute("encoder", codec.createBodyEncoder());
+    }
 
-	@Override
-	public void sessionIdle(IoSession session, IdleStatus status) throws Exception {
-		session.close(false);
-	}
+    @Override
+    public void sessionIdle(IoSession session, IdleStatus status) throws Exception {
+        session.close(false);
+    }
 
-	@Override
-	public void messageReceived(IoSession session, Object message) throws Exception {
-		if (message instanceof M3daEnvelope) {
-			M3daEnvelope env = (M3daEnvelope) message;
+    @Override
+    public void messageReceived(IoSession session, Object message) throws Exception {
+        if (message instanceof M3daEnvelope) {
+            M3daEnvelope env = (M3daEnvelope) message;
 
-			final String comId = new String(((ByteBuffer) env.getHeader().get(HeaderKey.ID)).array(), Charset.forName("UTF8"));
-			LOG.info("client communication identifier : {}", comId);
+            final String comId = new String(((ByteBuffer) env.getHeader().get(HeaderKey.ID)).array(),
+                    Charset.forName("UTF8"));
+            LOG.info("client communication identifier : {}", comId);
 
-			if (env.getPayload().length > 0) {
-				BysantDecoder decoder = (BysantDecoder) session.getAttribute("decoder");
-				ListDecoder out = new ListDecoder();
-				decoder.decodeAndAccumulate(ByteBuffer.wrap(env.getPayload()), out);
-				List<Object> decoded = out.list;
-				List<Message> data = new ArrayList<Message>(decoded.size());
+            if (env.getPayload().length > 0) {
+                BysantDecoder decoder = (BysantDecoder) session.getAttribute("decoder");
+                ListDecoder out = new ListDecoder();
+                decoder.decodeAndAccumulate(ByteBuffer.wrap(env.getPayload()), out);
+                List<Object> decoded = out.list;
+                List<Message> data = new ArrayList<Message>(decoded.size());
 
-				for (Object o : decoded) {
-					if (o instanceof M3daMessage) {
-						M3daMessage msg = (M3daMessage) o;
+                for (Object o : decoded) {
+                    if (o instanceof M3daMessage) {
+                        M3daMessage msg = (M3daMessage) o;
 
-						// uncompress list of values (quasicperiodic vector, etc..)
-						Map<String, List<?>> bodyData = new HashMap<String, List<?>>();
-						for (Map.Entry<Object, Object> e : msg.getBody().entrySet()) {
-							bodyData.put(e.getKey().toString(), extractList(e.getValue()));
-						}
-						data.add(new Message(msg.getPath(), bodyData));
-					}
-				}
-				store.enqueueReceivedData(comId, System.nanoTime(), new Envelope(System.currentTimeMillis(), data));
-			}
+                        // uncompress list of values (quasicperiodic vector, etc..)
+                        Map<String, List<?>> bodyData = new HashMap<String, List<?>>();
+                        for (Map.Entry<Object, Object> e : msg.getBody().entrySet()) {
+                            bodyData.put(e.getKey().toString(), extractList(e.getValue()));
+                        }
+                        data.add(new Message(msg.getPath(), bodyData));
+                    }
+                }
+                store.enqueueReceivedData(comId, System.nanoTime(), new Envelope(System.currentTimeMillis(), data));
+            }
 
-			// do we have pending data for this client ?
-			List<Message> toSend = store.popDataToSend(comId);
-			if (toSend != null && toSend.size() > 0) {
-				BysantEncoder encoder = (BysantEncoder) session.getAttribute("encoder");
+            M3daPdu[] pdus = new M3daPdu[0];
+            // do we have pending data for this client ?
+            List<Message> toSend = store.popDataToSend(comId);
+            if (toSend != null && toSend.size() > 0) {
+                // convert to the encoder DTO
+                pdus = new M3daPdu[toSend.size()];
+                for (int i = 0; i < pdus.length; i++) {
+                    pdus[i] = new M3daMessage(toSend.get(i).getPath(), 0L, new HashMap<Object, Object>(toSend.get(i)
+                            .getData()));
+                }
 
-				// convert to the encoder DTO
-				M3daPdu[] pdus = new M3daPdu[toSend.size()];
-				for (int i = 0; i < pdus.length; i++) {
-					pdus[i] = new M3daMessage(toSend.get(i).getPath(), 0L, new HashMap<Object, Object>(toSend.get(i).getData()));
-				}
-				// encode the message to be sent
-				byte[] binaryPayload = encoder.encode(pdus).array();
-				// enqueue for socket writing
-				session.write(new M3daEnvelope(new HashMap<Object, Object>(), binaryPayload, new HashMap<Object, Object>()));
-			}
-		}
-	}
+            }
 
-	/**
-	 * Extract a list of value following the M3DA convention : extract QuasiPeriodic and Delta vectors. Convert non list item to list with one element
-	 */
-	private List<?> extractList(final Object v) {
-		List<?> valueList;
-		if (v instanceof List) {
-			valueList = (List<?>) v;
-		} else if (v instanceof M3daDeltasVector) {
-			valueList = ((M3daDeltasVector) v).asFlatList();
-		} else if (v instanceof M3daQuasiPeriodicVector) {
-			valueList = ((M3daQuasiPeriodicVector) v).asFlatList();
-		} else if (v instanceof ByteBuffer) {
-			// as String (TODO : handle binary data)
-			valueList = Collections.singletonList(new String(((ByteBuffer) v).array(), Charset.forName("UTF8")));
-		} else {
-			valueList = Collections.singletonList(v);
-		}
-		return valueList;
-	}
+            BysantEncoder encoder = (BysantEncoder) session.getAttribute("encoder");
 
-	/**
-	 * Decoder output accumulating the data in a list
-	 */
-	private static class ListDecoder implements DecoderOutput<M3daPdu> {
-		private final List<Object> list = Lists.newArrayList();
+            // encode the message to be sent
+            byte[] binaryPayload = encoder.encode(pdus).array();
+            // enqueue for socket writing
+            Map<Object, Object> header = new HashMap<Object, Object>();
+            header.put(HeaderKey.STATUS, 200);
+            session.write(new M3daEnvelope(header, binaryPayload, new HashMap<Object, Object>()));
 
-		/**
-		 * {@inheritDoc}
-		 */
-		@Override
-		public void decoded(final M3daPdu pdu) {
-			list.add(pdu);
-		}
-	}
+        }
+    }
+
+    /**
+     * Extract a list of value following the M3DA convention : extract QuasiPeriodic and Delta vectors. Convert non list
+     * item to list with one element
+     */
+    private List<?> extractList(final Object v) {
+        List<?> valueList;
+        if (v instanceof List) {
+            valueList = (List<?>) v;
+        } else if (v instanceof M3daDeltasVector) {
+            valueList = ((M3daDeltasVector) v).asFlatList();
+        } else if (v instanceof M3daQuasiPeriodicVector) {
+            valueList = ((M3daQuasiPeriodicVector) v).asFlatList();
+        } else if (v instanceof ByteBuffer) {
+            // as String (TODO : handle binary data)
+            valueList = Collections.singletonList(new String(((ByteBuffer) v).array(), Charset.forName("UTF8")));
+        } else {
+            valueList = Collections.singletonList(v);
+        }
+        return valueList;
+    }
+
+    /**
+     * Decoder output accumulating the data in a list
+     */
+    private static class ListDecoder implements DecoderOutput<M3daPdu> {
+        private final List<Object> list = Lists.newArrayList();
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void decoded(final M3daPdu pdu) {
+            list.add(pdu);
+        }
+    }
 }
