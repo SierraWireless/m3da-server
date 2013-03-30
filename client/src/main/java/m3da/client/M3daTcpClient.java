@@ -100,16 +100,23 @@ public class M3daTcpClient implements M3daClient {
      * {@inheritDoc}
      */
     @Override
-    public M3daBodyMessage[] sendEnvelope(M3daBodyMessage[] messages) throws IOException, DecoderException,
-            M3daServerException {
+    public M3daBodyMessage[] sendEnvelope(M3daBodyMessage[] messages) throws IOException, M3daServerException {
+        if (socket == null) {
+            throw new IllegalStateException("you need to connect first");
+        }
+
+        // encode the envelope
+
         Map<Object, Object> header = new HashMap<Object, Object>();
         header.put(HeaderKey.ID, clientId);
         M3daEnvelope envelope = new M3daEnvelope(header, bysantEncoder.encode(messages).array(),
                 new HashMap<Object, Object>());
 
+        // send to the server
         ByteBuffer buffer = encoder.encode(envelope);
         socket.getOutputStream().write(buffer.array());
 
+        // read and decode received bytes
         final List<M3daEnvelope> list = new ArrayList<M3daEnvelope>();
         final DecoderOutput<M3daEnvelope> output = new DecoderOutput<M3daEnvelope>() {
             @Override
@@ -118,34 +125,39 @@ public class M3daTcpClient implements M3daClient {
             }
         };
 
-        do {
-            // read some bytes
-            final int bytes = socket.getInputStream().read(readBuffer);
-            if (bytes <= 0) {
-                throw new RuntimeException("connection closed");
+        try {
+            do {
+                // read some bytes
+                final int bytes = socket.getInputStream().read(readBuffer);
+                if (bytes <= 0) {
+                    return null;
+                }
+                decoder.decodeAndAccumulate(ByteBuffer.wrap(readBuffer, 0, bytes), output);
+            } while (list.size() == 0);
+
+            decoder.finishDecode();
+
+            M3daEnvelope env = list.get(0);
+            byte[] payload = env.getPayload();
+
+            // throw the correct exception in case of server side error
+            if (((Integer) env.getHeader().get(HeaderKey.STATUS)) != StatusCode.OK.getCode()) {
+                throw new M3daServerException(StatusCode.fromCode((Integer) env.getHeader().get(HeaderKey.STATUS)));
             }
-            decoder.decodeAndAccumulate(ByteBuffer.wrap(readBuffer, 0, bytes), output);
-        } while (list.size() == 0);
-        decoder.finishDecode();
 
-        M3daEnvelope env = list.get(0);
-        byte[] payload = env.getPayload();
+            final List<M3daBodyMessage> body = new ArrayList<M3daBodyMessage>();
+            final DecoderOutput<M3daPdu> bodyOutput = new DecoderOutput<M3daPdu>() {
+                @Override
+                public void decoded(final M3daPdu pdu) {
+                    body.add((M3daBodyMessage) pdu);
+                }
+            };
 
-        if (((Integer) env.getHeader().get(HeaderKey.STATUS)) != StatusCode.OK.getCode()) {
-            throw new M3daServerException(StatusCode.fromCode((Integer) env.getHeader().get(HeaderKey.STATUS)));
+            bysantDecoder.decodeAndAccumulate(ByteBuffer.wrap(payload), bodyOutput);
+            return body.toArray(new M3daBodyMessage[] {});
+        } catch (DecoderException e) {
+            throw new IllegalStateException("cannot decode the server message", e);
         }
-
-        final List<M3daBodyMessage> body = new ArrayList<M3daBodyMessage>();
-        final DecoderOutput<M3daPdu> bodyOutput = new DecoderOutput<M3daPdu>() {
-            @Override
-            public void decoded(final M3daPdu pdu) {
-                body.add((M3daBodyMessage) pdu);
-            }
-        };
-
-        bysantDecoder.decodeAndAccumulate(ByteBuffer.wrap(payload), bodyOutput);
-
-        return body.toArray(new M3daBodyMessage[] {});
     }
 
     /**
