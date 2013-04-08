@@ -153,7 +153,9 @@ public class M3daTcpClient implements M3daClient {
                 }
             };
 
-            bysantDecoder.decodeAndAccumulate(ByteBuffer.wrap(payload), bodyOutput);
+            if (payload.length > 0) {
+                bysantDecoder.decodeAndAccumulate(ByteBuffer.wrap(payload), bodyOutput);
+            }
             return body.toArray(new M3daBodyMessage[] {});
         } catch (DecoderException e) {
             throw new IllegalStateException("cannot decode the server message", e);
