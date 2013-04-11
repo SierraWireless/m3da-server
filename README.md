@@ -29,12 +29,12 @@ You can start connecting your M3DA client on the TCP port 44900 (IANA official p
 REST READ API
 --------
 
-You can see all the received data for a given client by GETing the URL : http://127.0.0.1:8080/data/{client identifier}
+You can see all the received data for a given client by GETing the URL : http://127.0.0.1:8080/clients/{client identifier}/data
  
 The client identifier is the value of "agent.config.agent.deviceId" in your mihini installation.
 
 Examples : 
-> GET http://127.0.0.1:8080/data/01121979
+> GET http://127.0.0.1:8080/clients/01121979/data
 
 RESULT : 
  
@@ -62,12 +62,12 @@ RESULT :
 REST WRITE API
 --------
 
-You can push data to a given client by POSTing to the following URL : http://127.0.0.1:8080/data/{client identifier}
+You can push data to a given client by POSTing to the following URL : http://127.0.0.1:8080/clients/{client identifier}/data
  
 The client identifier is the value of "agent.config.agent.deviceId" in your mihini installation.
 
 Examples : 
-> POST  http://127.0.0.1:8080/data/01121979
+> POST  http://127.0.0.1:8080/clients/01121979/data
 
 Content  : 
  
@@ -82,3 +82,23 @@ Content  :
    }]
 }
 ```
+
+REST CLIENTS API
+--------
+
+You can get the list of connect client by GETing the URL : http://127.0.0.1:8080/clients . 
+You'll received the list of "in" clients (those that sent data) and "out" clients (those for which data is waiting to be pushed on the server.) 
+
+Example:
+> POST  http://127.0.0.1:8080/clients/01121979/data
+
+Content : 
+```javascript
+{
+   "in"" : ["12131", "client1", "foobar"],
+   "out" : ["12131", "other-client"]
+}
+```
+
+
+

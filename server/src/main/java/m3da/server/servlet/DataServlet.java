@@ -15,13 +15,13 @@ import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import m3da.server.api.json.JSystemReadData;
 import m3da.server.api.json.JSystemWriteSettings;
 import m3da.server.api.mapping.Store2JsonDataMapper;
+import m3da.server.services.data.JDataService;
 import m3da.server.store.Envelope;
 import m3da.server.store.Message;
 import m3da.server.store.StoreService;
@@ -30,21 +30,20 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Servlet for legacy "data" servlet. "clients" API should be used instead.
+ *
+ */
 @SuppressWarnings("serial")
-public class DataServlet extends HttpServlet {
+public class DataServlet extends JsonServlet {
 
 	private static final Logger LOG = LoggerFactory.getLogger(DataServlet.class);
 
-	private StoreService store;
-
-	private Store2JsonDataMapper store2JsonMapper;
-
-	private ObjectMapper jacksonMapper;
-
-	public DataServlet(StoreService store, Store2JsonDataMapper store2JsonMapper, ObjectMapper jasksonMapper) {
-		this.store = store;
-		this.store2JsonMapper = store2JsonMapper;
-		this.jacksonMapper = jasksonMapper;
+	private JDataService dataService; 
+	
+	public DataServlet(JDataService dataService, ObjectMapper jasksonMapper) {
+		super(jasksonMapper);
+		this.dataService = dataService;
 	}
 
 	@Override
@@ -58,8 +57,7 @@ public class DataServlet extends HttpServlet {
 		system = system.substring(1);
 		LOG.info("system " + system);
 
-		Map<Long, Envelope> data = store.lastReceivedData(system);
-		Map<String, List<JSystemReadData>> json = this.store2JsonMapper.mapReceivedData(data);
+		Map<String, List<JSystemReadData>> json = this.dataService.lastReceivedData(system);
 
 		this.jacksonMapper.writeValue(resp.getWriter(), json);
 	}
@@ -73,14 +71,9 @@ public class DataServlet extends HttpServlet {
 			return;
 		}
 		system = system.substring(1);
+
 		JSystemWriteSettings settings = this.jacksonMapper.readValue(req.getInputStream(), JSystemWriteSettings.class);
-
-		List<Message> newData = store2JsonMapper.mapDataToSend(settings);
-		store.enqueueDataToSend(system, newData);
-	}
-
-	private void setResponseContentType(HttpServletResponse resp) {
-		resp.setContentType("application/json;charset=utf-8");
+		this.dataService.enqueueReceivedData(system, settings);
 	}
 
 }

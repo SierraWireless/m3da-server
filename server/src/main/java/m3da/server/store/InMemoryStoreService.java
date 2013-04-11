@@ -11,17 +11,23 @@
 package m3da.server.store;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Collections2;
 
 /**
  * In memory thread safe implementation of {@link StoreService}. Will discard the oldest messages if the maximum of message per client is reached.
@@ -100,6 +106,16 @@ public class InMemoryStoreService implements StoreService {
 		return result;
 	}
 
+	@Override
+	public synchronized Set<String> incomingClientIds() {
+		return receivedData.keySet();
+	}
+	
+	@Override
+	public synchronized Set<String> outgoingClientIds() {
+		return dataToSend.keySet();
+	}
+	
 	@Override
 	public void start() {
 		LOG.debug("start");

@@ -12,6 +12,7 @@ package m3da.server.store;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Service for storing and querying the received data by client identifier
@@ -58,6 +59,21 @@ public interface StoreService {
 	 */
 	public List<Message> popDataToSend(String clientId);
 
+	/**
+	 * Get the clients ids for which data was received.
+	 * 
+	 * @return list of client ids 
+	 */
+	public Set<String> incomingClientIds();
+	
+	/**
+ 	 * Get the clients ids for which data is ready to be sent.
+ 	 * 
+	 * @return list of client ids
+	 */
+	public Set<String> outgoingClientIds();
+	
+	
 	/**
 	 * start the service
 	 */

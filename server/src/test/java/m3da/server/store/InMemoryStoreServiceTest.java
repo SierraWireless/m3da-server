@@ -15,6 +15,7 @@ import static org.junit.Assert.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -43,13 +44,13 @@ public class InMemoryStoreServiceTest {
 		assertEquals(3, data.size());
 		assertEquals(msgA, data.get(1L).getMessages());
 		assertEquals(Long.valueOf(1L), data.get(1L).getReceptionTime());
-		
+
 		assertEquals(msgB, data.get(2L).getMessages());
 		assertEquals(Long.valueOf(2L), data.get(2L).getReceptionTime());
-		
+
 		assertEquals(msgC, data.get(3L).getMessages());
 		assertEquals(Long.valueOf(3L), data.get(3L).getReceptionTime());
-		
+
 	}
 
 	@Test
@@ -72,13 +73,13 @@ public class InMemoryStoreServiceTest {
 		assertEquals(3, data.size());
 		assertEquals(msgB, data.get(2L).getMessages());
 		assertEquals(Long.valueOf(2L), data.get(2L).getReceptionTime());
-		
+
 		assertEquals(msgC, data.get(3L).getMessages());
 		assertEquals(Long.valueOf(3L), data.get(3L).getReceptionTime());
-		
+
 		assertEquals(msgD, data.get(4L).getMessages());
 		assertEquals(Long.valueOf(4L), data.get(4L).getReceptionTime());
-		
+
 	}
 
 	@Test
@@ -103,4 +104,37 @@ public class InMemoryStoreServiceTest {
 		assertEquals("path2", popedMsgs.get(1).getPath());
 		assertEquals("path3", popedMsgs.get(2).getPath());
 	}
+
+	@Test
+	public void list_clients() {
+		// prepare
+		List<Message> msgA = new ArrayList<Message>(1);
+		List<Message> msgB = new ArrayList<Message>(1);
+		List<Message> msgC = new ArrayList<Message>(1);
+		List<Message> msgD = new ArrayList<Message>(1);
+
+		// run
+		service.enqueueReceivedData("clientId1", 1, new Envelope(1L, msgA));
+		service.enqueueReceivedData("clientId1", 2, new Envelope(2L, msgB));
+		service.enqueueReceivedData("clientId2", 3, new Envelope(3L, msgC));
+		service.enqueueReceivedData("clientId2", 4, new Envelope(4L, msgD));
+
+		// run
+		service.enqueueDataToSend("clientId2", msgA);
+		service.enqueueDataToSend("clientId3", msgB);
+
+		Set<String> inClientIds = service.incomingClientIds();
+		assertEquals(2, inClientIds.size());
+		assertTrue(inClientIds.contains("clientId1"));
+		assertTrue(inClientIds.contains("clientId2"));
+		
+		Set<String> outClientIds = service.outgoingClientIds();
+		assertEquals(2, outClientIds.size());
+		assertTrue(outClientIds.contains("clientId2"));
+		assertTrue(outClientIds.contains("clientId3"));
+		
+	}
+	
+	
+
 }

@@ -11,6 +11,9 @@
 package m3da.server;
 
 import m3da.server.api.mapping.Store2JsonDataMapper;
+import m3da.server.services.clients.JClientsService;
+import m3da.server.services.data.JDataService;
+import m3da.server.servlet.ClientsServlet;
 import m3da.server.servlet.DataServlet;
 import m3da.server.store.InMemoryStoreService;
 import m3da.server.store.StoreService;
@@ -48,25 +51,31 @@ public class Main {
 		root.setResourceBase(webappDirLocation);
 		root.setParentLoaderPriority(true);
 
-		StoreService service = new InMemoryStoreService(10);
+		StoreService storeService = new InMemoryStoreService(10);
 		Store2JsonDataMapper store2jsonMapper = new Store2JsonDataMapper();
 		ObjectMapper jacksonMapper = new ObjectMapper();
 
-		ServletHolder servletHolder = new ServletHolder(new DataServlet(service, store2jsonMapper, jacksonMapper));
-		root.addServlet(servletHolder, "/data/*");
-
+		JDataService dataService = new JDataService(storeService, store2jsonMapper);
+		JClientsService clientsService = new JClientsService(storeService);
+		
+		ServletHolder dataServletHolder = new ServletHolder(new DataServlet(dataService, jacksonMapper));
+		root.addServlet(dataServletHolder, "/data/*");
+		
+		ServletHolder clientsServletHolder = new ServletHolder(new ClientsServlet(dataService,	 clientsService, jacksonMapper));
+		root.addServlet(clientsServletHolder, "/clients/*");
+		
 		server.setHandler(root);
 
 		server.start();
 
-		service.start();
+		storeService.start();
 
-		M3daTcpServer tcpServer = new M3daTcpServer(2, 30, 44900, 4, 8, service);
+		M3daTcpServer tcpServer = new M3daTcpServer(2, 30, 44900, 4, 8, storeService);
 		tcpServer.start();
 		server.join();
 
 		tcpServer.stop();
-		service.stop();
+		storeService.stop();
 
 	}
 
