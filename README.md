@@ -67,7 +67,7 @@ You can push data to a given client by POSTing to the following URL : http://127
 The client identifier is the value of "agent.config.agent.deviceId" in your mihini installation.
 
 Examples : 
-> POST  http://127.0.0.1:8080/clients/01121979/data
+> POST  http://127.0.0.1:8080/clients
 
 Content  : 
  
