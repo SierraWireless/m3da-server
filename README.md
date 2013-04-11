@@ -90,9 +90,9 @@ You can get the list of connect client by GETing the URL : http://127.0.0.1:8080
 You'll received the list of "in" clients (those that sent data) and "out" clients (those for which data is waiting to be pushed on the server.) 
 
 Example:
-> POST  http://127.0.0.1:8080/clients/01121979/data
+> GET  http://127.0.0.1:8080/clients/01121979/data
 
-Content : 
+RESULT : 
 ```javascript
 {
    "in" : ["12131", "client1", "foobar"],
