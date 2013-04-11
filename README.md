@@ -95,7 +95,7 @@ Example:
 Content : 
 ```javascript
 {
-   "in"" : ["12131", "client1", "foobar"],
+   "in" : ["12131", "client1", "foobar"],
    "out" : ["12131", "other-client"]
 }
 ```
