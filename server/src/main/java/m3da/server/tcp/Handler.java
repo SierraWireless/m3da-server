@@ -142,6 +142,20 @@ public class Handler extends IoHandlerAdapter {
             // convert to the encoder DTO
             pdus = new M3daPdu[toSend.size()];
             for (int i = 0; i < pdus.length; i++) {
+                Map<String, List<?>> data = toSend.get(i).getData();
+
+                Map<Object, Object> toSerialize = new HashMap<Object, Object>();
+
+                for (Map.Entry<String, List<?>> e : data.entrySet()) {
+                    if (e.getValue() == null || e.getValue().size() == 0) {
+                        toSerialize.put(e.getKey(), null);
+                    } else if (e.getValue().size() == 1) {
+                        toSerialize.put(e.getKey(), e.getValue().get(0));
+                    } else {
+                        toSerialize.put(e.getKey(), e.getValue());
+                    }
+                }
+
                 pdus[i] = new M3daMessage(toSend.get(i).getPath(), 0L, new HashMap<Object, Object>(toSend.get(i)
                         .getData()));
             }
