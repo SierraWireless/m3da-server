@@ -8,7 +8,7 @@ import m3da.server.api.json.JSystemWriteSettings;
 import m3da.server.api.mapping.Store2JsonDataMapper;
 import m3da.server.store.Envelope;
 import m3da.server.store.Message;
-import m3da.server.store.StoreService;
+import m3da.server.store.Store;
 
 /**
  * Service to get JSON Bean for data servlet.
@@ -17,9 +17,9 @@ import m3da.server.store.StoreService;
 public class JDataService {
 
 	private Store2JsonDataMapper store2JsonMapper;
-	private StoreService store;
+	private Store store;
 
-	public JDataService(StoreService store, Store2JsonDataMapper store2JsonMapper) {
+	public JDataService(Store store, Store2JsonDataMapper store2JsonMapper) {
 		this.store = store;
 		this.store2JsonMapper = store2JsonMapper;
 	}

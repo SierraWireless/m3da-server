@@ -4,16 +4,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import m3da.server.api.json.JClients;
-import m3da.server.store.StoreService;
+import m3da.server.store.Store;
 
 /**
  * Service to get JSON bean for the Clients servlet.
  */
 public class JClientsService {
 
-	private StoreService storeService;
+	private Store storeService;
 
-	public JClientsService(StoreService storeService) {
+	public JClientsService(Store storeService) {
 		this.storeService = storeService;
 	}
 	

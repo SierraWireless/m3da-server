@@ -15,8 +15,7 @@ import m3da.server.services.clients.JClientsService;
 import m3da.server.services.data.JDataService;
 import m3da.server.servlet.ClientsServlet;
 import m3da.server.servlet.DataServlet;
-import m3da.server.store.InMemoryStoreService;
-import m3da.server.store.StoreService;
+import m3da.server.store.impl.InMemoryStore;
 import m3da.server.tcp.M3daTcpServer;
 
 import org.codehaus.jackson.map.ObjectMapper;
@@ -26,57 +25,57 @@ import org.eclipse.jetty.webapp.WebAppContext;
 
 /**
  * 
- * This class launches the web application in an embedded Jetty container. This is the entry point to your application. The Java command that is used
- * for launching should fire this main method.
+ * This class launches the web application in an embedded Jetty container. This is the entry point to your application.
+ * The Java command that is used for launching should fire this main method.
  * 
  */
 public class Main {
 
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) throws Exception {
-		String webappDirLocation = "src/main/webapp/";
+    /**
+     * @param args
+     */
+    public static void main(String[] args) throws Exception {
+        String webappDirLocation = "src/main/webapp/";
 
-		String webPort = System.getenv("PORT");
-		if (webPort == null || webPort.isEmpty()) {
-			webPort = "8080";
-		}
+        String webPort = System.getenv("PORT");
+        if (webPort == null || webPort.isEmpty()) {
+            webPort = "8080";
+        }
 
-		Server server = new Server(Integer.valueOf(webPort));
-		WebAppContext root = new WebAppContext();
+        Server server = new Server(Integer.valueOf(webPort));
+        WebAppContext root = new WebAppContext();
 
-		root.setContextPath("/");
-		root.setDescriptor(webappDirLocation + "/WEB-INF/web.xml");
-		root.setResourceBase(webappDirLocation);
-		root.setParentLoaderPriority(true);
+        root.setContextPath("/");
+        root.setDescriptor(webappDirLocation + "/WEB-INF/web.xml");
+        root.setResourceBase(webappDirLocation);
+        root.setParentLoaderPriority(true);
 
-		StoreService storeService = new InMemoryStoreService(10);
-		Store2JsonDataMapper store2jsonMapper = new Store2JsonDataMapper();
-		ObjectMapper jacksonMapper = new ObjectMapper();
+        InMemoryStore storeService = new InMemoryStore(10);
+        Store2JsonDataMapper store2jsonMapper = new Store2JsonDataMapper();
+        ObjectMapper jacksonMapper = new ObjectMapper();
 
-		JDataService dataService = new JDataService(storeService, store2jsonMapper);
-		JClientsService clientsService = new JClientsService(storeService);
-		
-		ServletHolder dataServletHolder = new ServletHolder(new DataServlet(dataService, jacksonMapper));
-		root.addServlet(dataServletHolder, "/data/*");
-		
-		ServletHolder clientsServletHolder = new ServletHolder(new ClientsServlet(dataService,	 clientsService, jacksonMapper));
-		root.addServlet(clientsServletHolder, "/clients/*");
-		
-		server.setHandler(root);
+        JDataService dataService = new JDataService(storeService, store2jsonMapper);
+        JClientsService clientsService = new JClientsService(storeService);
 
-		server.start();
+        ServletHolder dataServletHolder = new ServletHolder(new DataServlet(dataService, jacksonMapper));
+        root.addServlet(dataServletHolder, "/data/*");
 
-		storeService.start();
+        ServletHolder clientsServletHolder = new ServletHolder(new ClientsServlet(dataService, clientsService,
+                jacksonMapper));
+        root.addServlet(clientsServletHolder, "/clients/*");
 
-		M3daTcpServer tcpServer = new M3daTcpServer(2, 30, 44900, 4, 8, storeService);
-		tcpServer.start();
-		server.join();
+        server.setHandler(root);
 
-		tcpServer.stop();
-		storeService.stop();
+        server.start();
 
-	}
+        storeService.start();
 
+        M3daTcpServer tcpServer = new M3daTcpServer(2, 30, 44900, 4, 8, storeService, storeService);
+        tcpServer.start();
+        server.join();
+
+        tcpServer.stop();
+        storeService.stop();
+
+    }
 }

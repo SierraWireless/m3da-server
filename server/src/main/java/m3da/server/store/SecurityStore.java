@@ -10,31 +10,22 @@
  ******************************************************************************/
 package m3da.server.store;
 
-import java.util.List;
+import m3da.server.session.M3daSecurityInfo;
 
 /**
- * A dated collection of Message received from a client.
+ * Store for all the security releated informations.
  */
-public class Envelope {
-    private Long receptionTime;
-    private List<Message> messages;
+public interface SecurityStore {
 
     /**
-     * Create a message from its reception time and
+     * Get the security related informations.
      * 
-     * @param timestamp
-     * @param messages
+     * @param clientId
+     * @return
      */
-    public Envelope(Long timestamp, List<Message> messages) {
-        this.receptionTime = timestamp;
-        this.messages = messages;
-    }
+    M3daSecurityInfo getSecurityInfo(String clientId);
 
-    public Long getReceptionTime() {
-        return receptionTime;
-    }
+    void storeNonce(String clientId, String newNonce);
 
-    public List<Message> getMessages() {
-        return messages;
-    }
+    void storeNewPassword(String clientId, String password);
 }

@@ -17,14 +17,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import m3da.server.store.impl.InMemoryStore;
+
 import org.junit.Test;
 
 /**
- * Unit test for {@link InMemoryStoreService}
+ * Unit test for {@link InMemoryStore}
  */
 public class InMemoryStoreServiceTest {
 
-	private InMemoryStoreService service = new InMemoryStoreService(3);
+	private InMemoryStore service = new InMemoryStore(3);
 
 	@Test
 	public void enqueue_3_message_get_3_message() {

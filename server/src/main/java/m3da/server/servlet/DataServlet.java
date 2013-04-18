@@ -24,7 +24,7 @@ import m3da.server.api.mapping.Store2JsonDataMapper;
 import m3da.server.services.data.JDataService;
 import m3da.server.store.Envelope;
 import m3da.server.store.Message;
-import m3da.server.store.StoreService;
+import m3da.server.store.Store;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;

@@ -17,7 +17,7 @@ import java.util.Set;
 /**
  * Service for storing and querying the received data by client identifier
  */
-public interface StoreService {
+public interface Store {
 
 	/**
 	 * Enqueue some received data from the client
