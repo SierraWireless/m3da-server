@@ -21,6 +21,7 @@ import java.util.Map;
 
 import m3da.codec.BysantDecoder;
 import m3da.codec.BysantEncoder;
+import m3da.codec.DecoderException;
 import m3da.codec.DecoderOutput;
 import m3da.codec.HeaderKey;
 import m3da.codec.M3daCodecService;
@@ -29,15 +30,17 @@ import m3da.codec.dto.M3daEnvelope;
 import m3da.codec.dto.M3daMessage;
 import m3da.codec.dto.M3daPdu;
 import m3da.codec.dto.M3daQuasiPeriodicVector;
+import m3da.server.session.M3daAuthentication;
 import m3da.server.session.M3daSecurityInfo;
-import m3da.server.session.M3daSecurityType;
 import m3da.server.session.M3daSession;
 import m3da.server.store.Envelope;
 import m3da.server.store.Message;
 import m3da.server.store.SecurityStore;
 import m3da.server.store.Store;
+import m3da.server.tcp.security.AuthenticationResult;
 import m3da.server.tcp.security.PasswordNegoHandler;
 import m3da.server.tcp.security.PasswordNegoState;
+import m3da.server.tcp.security.SecurityHandler;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.mina.core.service.IoHandlerAdapter;
@@ -60,10 +63,13 @@ public class Handler extends IoHandlerAdapter {
 
     private final PasswordNegoHandler passNego;
 
+    private final SecurityHandler securityHandler;
+
     public Handler(Store store, SecurityStore securityStore, M3daCodecService codec) {
         this.store = store;
         this.codec = codec;
         this.passNego = new PasswordNegoHandler(securityStore);
+        this.securityHandler = new SecurityHandler(securityStore);
     }
 
     @Override
@@ -93,7 +99,7 @@ public class Handler extends IoHandlerAdapter {
 
             // password negotiation needed ?
             M3daSecurityInfo secInfo = m3daSession.getCommunicationInfo();
-            if (secInfo != null && !M3daSecurityType.NONE.equals(secInfo.getM3daSecurityType())
+            if (secInfo != null && !M3daAuthentication.NONE.equals(secInfo.getM3daSecurityType())
                     && StringUtils.isBlank(secInfo.getM3daCredential())) {
                 negotiatePassword(env, m3daSession, session);
             } else {
@@ -113,6 +119,29 @@ public class Handler extends IoHandlerAdapter {
                 Charset.forName("UTF8"));
         LOG.info("client communication identifier : {}", comId);
 
+        AuthenticationResult result = securityHandler.authenticate(env, getSession(session));
+        if (result.isSuccess()) {
+            // handle this message
+            final M3daEnvelope response = createResponse(comId, result.getEnvelope(), session);
+            if (response == null) {
+                LOG.error("due to session {} buggy header we close the connection", session);
+                // nothing to respond : buggy header
+                session.close(true);
+            } else {
+                // apply security if needed
+                session.write(securityHandler.signResponse(response, getSession(session)));
+            }
+        } else {
+            // send the error message to the device
+            session.write(securityHandler.signResponse(result.getEnvelope(), getSession(session)));
+            if (result.getEndSession()) {
+                session.close(false);
+            }
+        }
+
+    }
+
+    private M3daEnvelope createResponse(String comId, M3daEnvelope env, IoSession session) throws DecoderException {
         if (env.getPayload().length > 0) {
             BysantDecoder decoder = (BysantDecoder) session.getAttribute("decoder");
             ListDecoder out = new ListDecoder();
@@ -169,8 +198,7 @@ public class Handler extends IoHandlerAdapter {
         // enqueue for socket writing
         Map<Object, Object> header = new HashMap<Object, Object>();
         header.put(HeaderKey.STATUS, 200);
-        session.write(new M3daEnvelope(header, binaryPayload, new HashMap<Object, Object>()));
-
+        return new M3daEnvelope(header, binaryPayload, new HashMap<Object, Object>());
     }
 
     private void negotiatePassword(M3daEnvelope env, M3daSession m3daSession, IoSession session) throws IOException {

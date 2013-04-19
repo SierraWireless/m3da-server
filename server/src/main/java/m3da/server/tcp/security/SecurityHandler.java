@@ -27,9 +27,10 @@ import m3da.codec.StatusCode;
 import m3da.codec.dto.CipherAlgorithm;
 import m3da.codec.dto.HmacType;
 import m3da.codec.dto.M3daEnvelope;
+import m3da.codec.impl.M3daCodecServiceImpl;
+import m3da.server.session.M3daAuthentication;
 import m3da.server.session.M3daCipher;
 import m3da.server.session.M3daSecurityInfo;
-import m3da.server.session.M3daSecurityType;
 import m3da.server.session.M3daSession;
 import m3da.server.store.SecurityStore;
 
@@ -44,7 +45,7 @@ public class SecurityHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(SecurityHandler.class);
 
-    private M3daCodecService codec;
+    private final M3daCodecService codec = new M3daCodecServiceImpl();
 
     /** for reading and storing client information */
     private final SecurityStore securityStore;
@@ -231,7 +232,7 @@ public class SecurityHandler {
     /**
      * Send a new challenge or an error if the maximum number of retry is exceeded
      */
-    private AuthenticationResult sendChallenge(final StatusCode statusCode, M3daSecurityType securityType,
+    private AuthenticationResult sendChallenge(final StatusCode statusCode, M3daAuthentication securityType,
             M3daSession session) throws SecurityException {
         int attempt = session.getClientAuthenticationAttemptCount();
         if (attempt < MAX_AUTH_ATTEMPT) {
@@ -258,7 +259,7 @@ public class SecurityHandler {
 
         // add new NONCE and signature if needed
         final M3daSecurityInfo secInfo = session.getCommunicationInfo();
-        if (secInfo == null || secInfo.getM3daSecurityType() == M3daSecurityType.NONE) {
+        if (secInfo == null || secInfo.getM3daSecurityType() == M3daAuthentication.NONE) {
             LOG.debug("no security for this system, we push the message");
             // no security, we push the message
             return response;
@@ -341,7 +342,7 @@ public class SecurityHandler {
      */
     public void sessionClosed(M3daSession session) {
         final M3daSecurityInfo secInfo = session.getCommunicationInfo();
-        if (secInfo != null && !M3daSecurityType.NONE.equals(secInfo.getM3daSecurityType())) {
+        if (secInfo != null && !M3daAuthentication.NONE.equals(secInfo.getM3daSecurityType())) {
 
             final String communicationId = session.getCommunicationId();
             if (communicationId == null) {

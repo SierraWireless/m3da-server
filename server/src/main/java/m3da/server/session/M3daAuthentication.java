@@ -13,7 +13,7 @@ package m3da.server.session;
 /**
  * The security scheme to apply for protocol M3DA
  */
-public enum M3daSecurityType {
+public enum M3daAuthentication {
 
     /** no security */
     NONE("none"), //
@@ -24,7 +24,7 @@ public enum M3daSecurityType {
 
     private final String description;
 
-    private M3daSecurityType(final String description) {
+    private M3daAuthentication(final String description) {
         this.description = description;
     }
 

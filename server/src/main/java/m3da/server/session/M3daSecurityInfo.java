@@ -10,15 +10,20 @@
  ******************************************************************************/
 package m3da.server.session;
 
-public class M3daSecurityInfo {
+import java.io.Serializable;
 
-    // -- M3DA --
+public class M3daSecurityInfo implements Serializable {
+
+    /**
+     * for serialization
+     */
+    private static final long serialVersionUID = 1L;
 
     /** M3DA : communication identifier */
     private String m3daCommId;
 
     /** M3DA : security type */
-    private M3daSecurityType m3daSecurityType;
+    private M3daAuthentication m3daSecurityType;
 
     /** M3DA : the server nonce for salting the hashes */
     private String m3daNonce;
@@ -36,7 +41,7 @@ public class M3daSecurityInfo {
         this.m3daCommId = m3daCommId;
     }
 
-    public void setM3daSecurityType(M3daSecurityType m3daSecurityType) {
+    public void setM3daSecurityType(M3daAuthentication m3daSecurityType) {
         this.m3daSecurityType = m3daSecurityType;
     }
 
@@ -60,7 +65,7 @@ public class M3daSecurityInfo {
         return m3daCommId;
     }
 
-    public M3daSecurityType getM3daSecurityType() {
+    public M3daAuthentication getM3daSecurityType() {
         return m3daSecurityType;
     }
 

@@ -10,6 +10,12 @@
  ******************************************************************************/
 package m3da.server.store.impl;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -18,7 +24,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import m3da.server.session.M3daSecurityInfo;
@@ -118,10 +127,40 @@ public class InMemoryStore implements Store, SecurityStore {
         return dataToSend.keySet();
     }
 
+    private Timer t = new Timer();
+    private SaveSecurity saveTask = new SaveSecurity();
+
+    @SuppressWarnings("unchecked")
     @Override
     public void start() {
         LOG.debug("start");
-        // nothing to do here
+
+        // load previously stored security information
+
+        File f = new File("store/security.ser");
+        if (f.exists() && f.canRead()) {
+            try {
+                FileInputStream fis = new FileInputStream("store/security.ser");
+                ObjectInputStream in = new ObjectInputStream(fis);
+                securityInfos = (Map<String, M3daSecurityInfo>) in.readObject();
+                in.close();
+            } catch (Exception e) {
+                LOG.error("Error reading the serialized security parameters", e);
+            }
+        } else {
+            LOG.warn("no store/security.ser security parameters will be empty");
+        }
+        Runtime.getRuntime().addShutdownHook(new Thread(saveTask));
+
+        // save every 5 minutes
+        t.scheduleAtFixedRate(new TimerTask() {
+
+            @Override
+            public void run() {
+                saveTask.run();
+            }
+        }, 1000 * 60, 1000 * 60 * 5);
+
     }
 
     @Override
@@ -130,21 +169,57 @@ public class InMemoryStore implements Store, SecurityStore {
         // nothing to do here
     }
 
+    Map<String /* client Id */, M3daSecurityInfo> securityInfos = new ConcurrentHashMap<String, M3daSecurityInfo>();
+
     @Override
     public M3daSecurityInfo getSecurityInfo(String clientId) {
-        // TODO Auto-generated method stub
-        return null;
+        return securityInfos.get(clientId);
     }
 
     @Override
     public void storeNonce(String clientId, String newNonce) {
-        // TODO Auto-generated method stub
-
+        M3daSecurityInfo secInfo = securityInfos.get(clientId);
+        if (secInfo != null) {
+            secInfo.setM3daNonce(newNonce);
+        }
     }
 
     @Override
     public void storeNewPassword(String clientId, String password) {
-        // TODO Auto-generated method stub
+        M3daSecurityInfo secInfo = securityInfos.get(clientId);
+        if (secInfo != null) {
+            secInfo.setM3daCredential(password);
+        }
+    }
 
+    @Override
+    public void addSecurityInfo(M3daSecurityInfo securityInfo) {
+        synchronized (securityInfos) {
+            securityInfos.put(securityInfo.getM3daCommId(), securityInfo);
+        }
+    }
+
+    private class SaveSecurity implements Runnable {
+
+        @Override
+        public void run() {
+            try {
+                File storeDir = new File("store");
+                if (!storeDir.exists()) {
+                    storeDir.mkdir();
+                    LOG.info("created store directory");
+                }
+
+                FileOutputStream fileOut = new FileOutputStream("store/security.ser");
+                ObjectOutputStream out = new ObjectOutputStream(fileOut);
+                synchronized (securityInfos) {
+                    out.writeObject(securityInfos);
+                    LOG.info("security information serialized");
+                }
+                out.close();
+            } catch (IOException e) {
+                LOG.error("error saving security informations", e);
+            }
+        }
     }
 }

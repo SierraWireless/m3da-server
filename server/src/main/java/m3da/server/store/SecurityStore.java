@@ -25,7 +25,26 @@ public interface SecurityStore {
      */
     M3daSecurityInfo getSecurityInfo(String clientId);
 
+    /**
+     * store the new nonce value after some communication
+     * 
+     * @param clientId the client unique identifier
+     * @param newNonce the new nonce string to use for the next communication
+     */
     void storeNonce(String clientId, String newNonce);
 
+    /**
+     * Store the password for a given client after the password negotiation.
+     * 
+     * @param clientId the client unique identifier
+     * @param password the password string
+     */
     void storeNewPassword(String clientId, String password);
+
+    /**
+     * add new security information for a client. It'll discard already associated security informations.
+     * 
+     * @param securityInfo the new security information
+     */
+    void addSecurityInfo(M3daSecurityInfo securityInfo);
 }

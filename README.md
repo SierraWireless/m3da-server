@@ -17,6 +17,7 @@ Compile all the project
 With maven generate a runnable uber jar using the command :
 
 > cd server
+
 > mvn assembly:assembly -DdescriptorId=jar-with-dependencies
  
 
@@ -33,10 +34,10 @@ You can see all the received data for a given client by GETing the URL : http://
  
 The client identifier is the value of "agent.config.agent.deviceId" in your mihini installation.
 
-Examples : 
+Examples: 
 > GET http://127.0.0.1:8080/clients/01121979/data
 
-RESULT : 
+RESULT: 
  
 ```javascript
 {
@@ -66,10 +67,10 @@ You can push data to a given client by POSTing to the following URL : http://127
  
 The client identifier is the value of "agent.config.agent.deviceId" in your mihini installation.
 
-Examples : 
+Examples: 
 > POST  http://127.0.0.1:8080/clients/01121979/data
 
-Content  : 
+Content: 
  
 ```javascript
 {
@@ -92,7 +93,7 @@ You'll received the list of "in" clients (those that sent data) and "out" client
 Example:
 > GET  http://127.0.0.1:8080/clients
 
-RESULT : 
+RESULT: 
 ```javascript
 {
    "in" : ["12131", "client1", "foobar"],
@@ -100,5 +101,33 @@ RESULT :
 }
 ```
 
+SETUP SECURITY
+--------
 
+You can enable secure communication with your client. the client and the server will share a password for ciphering and authenticating communitions.
+Like TLS/SSL but is a more bandwidth friendly way (see the M3DA security specification : http://wiki.eclipse.org/Mihini/M3DA_Specification ).
+
+Setup security : 
+
+Post the security information on http://127.0.0.1:8080/clients/{client identifier}/data
+ 
+The client identifier is the value of "agent.config.agent.deviceId" in your mihini installation.
+
+Examples:
+> POST http://127.0.01:8080/clients/
+
+Content: 
+```javascript
+{
+   "authentication" : "HMAC_SHA1",
+   "encryption" : "AES_CTR_256",
+   "password" : "mySecurePassword$$$$"
+}
+
+
+The different authentication schemes are: NONE, HMAC_MD5, HMAC_SHA1
+
+The different encryption shcemes are: NONE, AES_CTR_128, AES_CTR_256, AES_CBC_128, AES_CBC_256
+
+The different used algorithm are explicited in the M3DA security specification.
 

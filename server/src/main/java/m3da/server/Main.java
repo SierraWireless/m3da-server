@@ -55,7 +55,7 @@ public class Main {
         ObjectMapper jacksonMapper = new ObjectMapper();
 
         JDataService dataService = new JDataService(storeService, store2jsonMapper);
-        JClientsService clientsService = new JClientsService(storeService);
+        JClientsService clientsService = new JClientsService(storeService, storeService);
 
         ServletHolder dataServletHolder = new ServletHolder(new DataServlet(dataService, jacksonMapper));
         root.addServlet(dataServletHolder, "/data/*");

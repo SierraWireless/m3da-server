@@ -12,3 +12,5 @@
 
 # maven build directory
 target
+
+server/store
