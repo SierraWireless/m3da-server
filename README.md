@@ -30,7 +30,7 @@ You can start connecting your M3DA client on the TCP port 44900 (IANA official p
 REST READ API
 --------
 
-You can see all the received data for a given client by GETing the URL : http://127.0.0.1:8080/clients/{client identifier}/data
+You can see all the received data for a given client by GETing the URL : http://127.0.0.1:8080/clients/{client-identifier}/data
  
 The client identifier is the value of "agent.config.agent.deviceId" in your mihini installation.
 
@@ -63,7 +63,7 @@ RESULT:
 REST WRITE API
 --------
 
-You can push data to a given client by POSTing to the following URL : http://127.0.0.1:8080/clients/{client identifier}/data
+You can push data to a given client by POSTing to the following URL : http://127.0.0.1:8080/clients/{client-identifier}/data
  
 The client identifier is the value of "agent.config.agent.deviceId" in your mihini installation.
 
@@ -109,12 +109,12 @@ Like TLS/SSL but is a more bandwidth friendly way (see the M3DA security specifi
 
 Setup security : 
 
-Post the security information on http://127.0.0.1:8080/clients/{client identifier}/data
+Post the security information on http://127.0.0.1:8080/clients/{client-identifier}/security
  
 The client identifier is the value of "agent.config.agent.deviceId" in your mihini installation.
 
 Examples:
-> POST http://127.0.01:8080/clients/
+> POST http://127.0.01:8080/clients/01121979/security
 
 Content: 
 ```javascript
