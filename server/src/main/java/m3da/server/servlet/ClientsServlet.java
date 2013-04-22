@@ -4,7 +4,7 @@
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- * 
+ *
  * Contributors:
  *     Sierra Wireless - initial API and implementation
  ******************************************************************************/
@@ -34,13 +34,13 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Servlet for "clients" API
- * 
+ *
  * <ul>
  * <li>GET /clients (list of clients)</li>
  * <li>GET /clients/1/data (last received data)</li>
  * <li>POST /clients/1/data (send data)</li>
  * </ul>
- * 
+ *
  */
 @SuppressWarnings("serial")
 public class ClientsServlet extends JsonServlet {
@@ -103,8 +103,9 @@ public class ClientsServlet extends JsonServlet {
                 LOG.info("new security : {} => {}", clientId, security);
                 this.clientsService.setSecurity(clientId, security);
             }
+        } else {
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, ERROR_NO_CLIENT);
         }
-
     }
 
     private String getClientId(String pathInfo, String endPath) {
