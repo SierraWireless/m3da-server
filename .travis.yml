@@ -1,3 +1,1 @@
 language: java
-script: mvn install
-after_script: cd server && mvn assembly:assembly -DdescriptorId=jar-with-dependencies
