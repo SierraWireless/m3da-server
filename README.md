@@ -5,7 +5,9 @@ A very simple M3DA TCP server. M3DA is a secure and bandwith efficient M2M proto
 
 The specification : http://wiki.eclipse.org/Mihini/M3DA_Specification
 
-The client : http://www.eclipse.org/mihini
+The embedded client : http://www.eclipse.org/mihini
+
+It's licensed under the term of the Eclipse Public License - v 1.0. See the LICENSE-EPLv1.0.html at the root of the repository.
 
 Compiling 
 ---------
