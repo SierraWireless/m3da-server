@@ -11,10 +11,12 @@
 package m3da.server.tcp;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +35,7 @@ import m3da.codec.dto.M3daQuasiPeriodicVector;
 import m3da.server.session.M3daAuthentication;
 import m3da.server.session.M3daSecurityInfo;
 import m3da.server.session.M3daSession;
+import m3da.server.store.DataValue;
 import m3da.server.store.Envelope;
 import m3da.server.store.Message;
 import m3da.server.store.SecurityStore;
@@ -114,7 +117,7 @@ public class Handler extends IoHandlerAdapter {
         }
     }
 
-    public void respond(final IoSession session, M3daEnvelope env) throws Exception {
+    private void respond(final IoSession session, M3daEnvelope env) throws Exception {
         final String comId = new String(((ByteBuffer) env.getHeader().get(HeaderKey.ID)).array(),
                 Charset.forName("UTF8"));
         LOG.info("client communication identifier : {}", comId);
@@ -143,6 +146,8 @@ public class Handler extends IoHandlerAdapter {
 
     private M3daEnvelope createResponse(String comId, M3daEnvelope env, IoSession session) throws DecoderException {
         if (env.getPayload().length > 0) {
+            long now = new Date().getTime();
+
             BysantDecoder decoder = (BysantDecoder) session.getAttribute("decoder");
             ListDecoder out = new ListDecoder();
             decoder.decodeAndAccumulate(ByteBuffer.wrap(env.getPayload()), out);
@@ -153,10 +158,30 @@ public class Handler extends IoHandlerAdapter {
                 if (o instanceof M3daMessage) {
                     M3daMessage msg = (M3daMessage) o;
 
+                    Map<String, List<DataValue<?>>> bodyData = new HashMap<String, List<DataValue<?>>>();
+                    // is there timestamp ??
+
+                    if (isCorrelatedData(msg.getBody())) {
+                        LOG.debug("correlated data (joy joy..)");
+                        // do we have timestamps ?
+                        if (msg.getBody().containsKey("timestamp") || msg.getBody().containsKey("timestamps")) {
+                            createTimestampedCorrelatedData(bodyData, msg);
+                        } else {
+                            createVersionedCorrelatedData(bodyData, msg);
+                        }
+                    }
+
                     // uncompress list of values (quasicperiodic vector, etc..)
-                    Map<String, List<?>> bodyData = new HashMap<String, List<?>>();
+
                     for (Map.Entry<Object, Object> e : msg.getBody().entrySet()) {
-                        bodyData.put(e.getKey().toString(), extractList(e.getValue()));
+                        List<?> values = extractList(e.getValue());
+                        List<DataValue<?>> dataValues = new ArrayList<DataValue<?>>(values.size());
+
+                        for (Object v : values) {
+                            dataValues.add(new DataValue<Object>(now, v));
+                        }
+
+                        bodyData.put(e.getKey().toString(), dataValues);
                     }
                     data.add(new Message(msg.getPath(), bodyData));
                 }
@@ -171,16 +196,20 @@ public class Handler extends IoHandlerAdapter {
             // convert to the encoder DTO
             pdus = new M3daPdu[toSend.size()];
             for (int i = 0; i < pdus.length; i++) {
-                Map<String, List<?>> data = toSend.get(i).getData();
+                Map<String, List<DataValue<?>>> data = toSend.get(i).getData();
 
                 Map<Object, Object> toSerialize = new HashMap<Object, Object>();
 
-                for (Map.Entry<String, List<?>> e : data.entrySet()) {
+                for (Map.Entry<String, List<DataValue<?>>> e : data.entrySet()) {
                     if (e.getValue() == null || e.getValue().size() == 0) {
                         toSerialize.put(e.getKey(), null);
                     } else if (e.getValue().size() == 1) {
-                        toSerialize.put(e.getKey(), e.getValue().get(0));
+                        toSerialize.put(e.getKey(), e.getValue().get(0).getValue());
                     } else {
+                        List<Object> value = new ArrayList<Object>(e.getValue().size());
+                        for (DataValue<?> d : e.getValue()) {
+                            value.add(d.getValue());
+                        }
                         toSerialize.put(e.getKey(), e.getValue());
                     }
                 }
@@ -216,6 +245,83 @@ public class Handler extends IoHandlerAdapter {
     }
 
     /**
+     * Return <code>true</code> if the body contains correlated data (list of multiple values)
+     */
+    private boolean isCorrelatedData(final Map<Object, Object> body) {
+        for (final Map.Entry<Object, Object> e : body.entrySet()) {
+            if (e.getValue() instanceof List || e.getValue() instanceof M3daDeltasVector
+                    || e.getValue() instanceof M3daQuasiPeriodicVector) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Create the {@link Item} for a message containing correlated data with timestamp
+     */
+    private void createTimestampedCorrelatedData(final Map<String, List<DataValue<?>>> bodyData, final M3daMessage msg) {
+        LOG.debug("timestamped correlated data");
+        final Map<Object, Object> body = msg.getBody();
+
+        // correlated data with timestamp
+        List<?> ts = null;
+        if (body.containsKey("timestamp") || body.containsKey("timestamps")) {
+            if (body.containsKey("timestamp")) {
+                ts = asFlatList(body.get("timestamp"));
+            } else {
+                ts = asFlatList(body.get("timestamps"));
+            }
+        }
+        for (final Map.Entry<Object, Object> e : msg.getBody().entrySet()) {
+            // skip timestamp, it's the "index"
+            if ("timestamp".equals(e.getKey()) || "timestamps".equals(e.getKey())) {
+                continue;
+            }
+            int index = 0;
+            long lastDate = System.currentTimeMillis();
+            List<DataValue<?>> valuesForKey = new ArrayList<DataValue<?>>();
+            for (Object value : extractList(e.getValue())) {
+                if (value instanceof ByteBuffer) {
+                    try {
+                        value = new String(((ByteBuffer) value).array(), "UTF-8");
+                    } catch (UnsupportedEncodingException e1) {
+                        throw new IllegalStateException("no UTF-8 codec in the JVM");
+                    }
+                }
+                if (index < ts.size()) {
+                    final long date = Long.valueOf(ts.get(index).toString()) * 1000L;
+                    valuesForKey.add(new DataValue<Object>(date, value));
+                    lastDate = date;
+                } else {
+                    // use last date plus one milliseconds for being sure it's unique
+                    lastDate++;
+                    valuesForKey.add(new DataValue<Object>(lastDate, value));
+                }
+                index++;
+            }
+            bodyData.put(e.getKey().toString(), valuesForKey);
+        }
+    }
+
+    /**
+     * Create the {@link Item} for a message containing correlated data without timestamp
+     */
+    private void createVersionedCorrelatedData(final Map<String, List<DataValue<?>>> bodyData, final M3daMessage msg) {
+        LOG.debug("correlated data with no timestamp");
+        // correlated data with no timestamp so we keep the last value
+        long now = System.currentTimeMillis();
+        for (final Map.Entry<Object, Object> e : msg.getBody().entrySet()) {
+
+            List<DataValue<?>> values = new ArrayList<DataValue<?>>();
+            for (Object o : extractList(e.getValue())) {
+                values.add(new DataValue<Object>(now, o));
+            }
+            bodyData.put(e.getKey().toString(), values);
+        }
+    }
+
+    /**
      * Extract a list of value following the M3DA convention : extract QuasiPeriodic and Delta vectors. Convert non list
      * item to list with one element
      */
@@ -234,6 +340,18 @@ public class Handler extends IoHandlerAdapter {
             valueList = Collections.singletonList(v);
         }
         return valueList;
+    }
+
+    private List<?> asFlatList(Object encodedTs) {
+        if (encodedTs instanceof List) {
+            return (List<?>) encodedTs;
+        } else if (encodedTs instanceof M3daQuasiPeriodicVector) {
+            return ((M3daQuasiPeriodicVector) encodedTs).asFlatList();
+        } else if (encodedTs instanceof M3daDeltasVector) {
+            return ((M3daDeltasVector) encodedTs).asFlatList();
+        } else {
+            return null;
+        }
     }
 
     /**

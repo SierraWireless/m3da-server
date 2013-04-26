@@ -19,31 +19,31 @@ import java.util.Map;
  */
 public class Message implements Serializable {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	/** path */
-	private final String path;
+    /** path */
+    private final String path;
 
-	/** associated data */
-	private final Map<String, List<?>> data;
+    /** associated data */
+    private final Map<String, List<DataValue<?>>> data;
 
-	public Message(String path, Map<String, List<?>> data) {
-		super();
-		this.path = path;
-		this.data = data;
-	}
+    public Message(String path, Map<String, List<DataValue<?>>> data) {
+        super();
+        this.path = path;
+        this.data = data;
+    }
 
-	public String getPath() {
-		return path;
-	}
+    public String getPath() {
+        return path;
+    }
 
-	public Map<String, List<?>> getData() {
-		return data;
-	}
+    public Map<String, List<DataValue<?>>> getData() {
+        return data;
+    }
 
-	@Override
-	public String toString() {
-		return "Data [path=" + path + ", data=" + data + "]";
-	}
+    @Override
+    public String toString() {
+        return "Data [path=" + path + ", data=" + data + "]";
+    }
 
 }

@@ -34,156 +34,156 @@ import m3da.server.store.Message;
  */
 public class Store2JsonDataMapper {
 
-	/**
-	 * Maps a hashmap of received data (organized by nanoseconds, with a list of m3da.store.bean.Messages) into a map of JSystemData, organized by
-	 * data id.
-	 * 
-	 * Time stamps are converted from nanoseconds (m3da message timestamp) to milliseconds (JSON timestamps.)
-	 * 
-	 * @param lastReceived
-	 */
-	public Map<String, List<JSystemReadData>> mapReceivedData(Map<Long, Envelope> data) {
+    /**
+     * Maps a hashmap of received data (organized by nanoseconds, with a list of m3da.store.bean.Messages) into a map of
+     * JSystemData, organized by data id.
+     * 
+     * Time stamps are converted from nanoseconds (m3da message timestamp) to milliseconds (JSON timestamps.)
+     * 
+     * @param lastReceived
+     */
+    public Map<String, List<JSystemReadData>> mapReceivedData(Map<Long, Envelope> data) {
 
-		Map<String, List<JSystemReadData>> res = new HashMap<String, List<JSystemReadData>>();
+        Map<String, List<JSystemReadData>> res = new HashMap<String, List<JSystemReadData>>();
 
-		if (data == null) {
-			return res;
-		}
+        if (data == null) {
+            return res;
+        }
 
-		for (Map.Entry<Long, Envelope> e : data.entrySet()) {
+        for (Map.Entry<Long, Envelope> e : data.entrySet()) {
 
-			Envelope envelope = e.getValue();
-			String timestampInMs = String.valueOf(envelope.getReceptionTime());
+            Envelope envelope = e.getValue();
+            String timestampInMs = String.valueOf(envelope.getReceptionTime());
 
-			for (Message message : envelope.getMessages()) {
+            for (Message message : envelope.getMessages()) {
 
-				String path = message.getPath();
-				Map<String, List<?>> pathData = message.getData();
+                String path = message.getPath();
+                Map<String, List<?>> pathData = message.getData();
 
-				for (Map.Entry<String, List<?>> received : pathData.entrySet()) {
+                for (Map.Entry<String, List<?>> received : pathData.entrySet()) {
 
-					String key = received.getKey();
+                    String key = received.getKey();
 
-					String dataId = path + "." + key;
-					List<JSystemReadData> resData = null;
-					if (res.containsKey(dataId)) {
-						resData = res.get(dataId);
-					} else {
-						resData = new ArrayList<JSystemReadData>();
-						res.put(dataId, resData);
-					}
+                    String dataId = path + "." + key;
+                    List<JSystemReadData> resData = null;
+                    if (res.containsKey(dataId)) {
+                        resData = res.get(dataId);
+                    } else {
+                        resData = new ArrayList<JSystemReadData>();
+                        res.put(dataId, resData);
+                    }
 
-					JSystemReadData jSystemData = new JSystemReadData();
-					jSystemData.setTimestamp(timestampInMs);
+                    JSystemReadData jSystemData = new JSystemReadData();
+                    jSystemData.setTimestamp(timestampInMs);
 
-					jSystemData.setValue(this.byteBuffers2Strings(received.getValue()));
+                    jSystemData.setValue(this.byteBuffers2Strings(received.getValue()));
 
-					resData.add(jSystemData);
+                    resData.add(jSystemData);
 
-				}
+                }
 
-			}
+            }
 
-		}
+        }
 
-		for (Map.Entry<String, List<JSystemReadData>> resEntry : res.entrySet()) {
-			this.sortJSystemDataList(resEntry.getValue());
-		}
+        for (Map.Entry<String, List<JSystemReadData>> resEntry : res.entrySet()) {
+            this.sortJSystemDataList(resEntry.getValue());
+        }
 
-		return res;
+        return res;
 
-	}
+    }
 
-	/**
-	 * Sort a list of JSystemData, by decreasing time stamps.
-	 * 
-	 * @param jSystemDataList
-	 */
-	private void sortJSystemDataList(List<JSystemReadData> jSystemDataList) {
-		Comparator<JSystemReadData> comp = new Comparator<JSystemReadData>() {
-			@Override
-			public int compare(JSystemReadData data1, JSystemReadData data2) {
-				// data2 first to get decreasing timestamps
-				return (data2.getTimestamp().compareTo(data1.getTimestamp()));
-			}
-		};
-		Collections.sort(jSystemDataList, comp);
-	}
+    /**
+     * Sort a list of JSystemData, by decreasing time stamps.
+     * 
+     * @param jSystemDataList
+     */
+    private void sortJSystemDataList(List<JSystemReadData> jSystemDataList) {
+        Comparator<JSystemReadData> comp = new Comparator<JSystemReadData>() {
+            @Override
+            public int compare(JSystemReadData data1, JSystemReadData data2) {
+                // data2 first to get decreasing timestamps
+                return (data2.getTimestamp().compareTo(data1.getTimestamp()));
+            }
+        };
+        Collections.sort(jSystemDataList, comp);
+    }
 
-	/**
-	 * "Strings" from m3da are actually ByteBuffers ; we will assume all of them are utf-8 string.
-	 * 
-	 * @param values
-	 * @return the list of values, with ByteBuffers converted to utf-8 strings
-	 */
-	private List<Object> byteBuffers2Strings(List<?> values) {
+    /**
+     * "Strings" from m3da are actually ByteBuffers ; we will assume all of them are utf-8 string.
+     * 
+     * @param values
+     * @return the list of values, with ByteBuffers converted to utf-8 strings
+     */
+    private List<Object> byteBuffers2Strings(List<?> values) {
 
-		List<Object> res = new ArrayList<Object>();
+        List<Object> res = new ArrayList<Object>();
 
-		for (Object o : values) {
-			if (o instanceof ByteBuffer) {
-				String str = new String(((ByteBuffer) o).array(), Charset.forName("utf-8"));
-				res.add(str);
-			} else {
-				res.add(o);
-			}
-		}
+        for (Object o : values) {
+            if (o instanceof ByteBuffer) {
+                String str = new String(((ByteBuffer) o).array(), Charset.forName("utf-8"));
+                res.add(str);
+            } else {
+                res.add(o);
+            }
+        }
 
-		return res;
-	}
+        return res;
+    }
 
-	/**
-	 * @param settings
-	 * @return
-	 */
-	public List<Message> mapDataToSend(JSystemWriteSettings settings) {
+    /**
+     * @param settings
+     * @return
+     */
+    public List<Message> mapDataToSend(JSystemWriteSettings settings) {
 
-		Map<String, Message> messagesByPath = new HashMap<String, Message>();
+        Map<String, Message> messagesByPath = new HashMap<String, Message>();
 
-		for (JSystemWriteData writeData : settings.getSettings()) {
+        for (JSystemWriteData writeData : settings.getSettings()) {
 
-			String key = writeData.getKey();
+            String key = writeData.getKey();
 
-			int lastDot = key.lastIndexOf(".");
-			if (lastDot != -1) {
-				String path = key.substring(0, lastDot);
-				String id = key.substring(lastDot + 1);
+            int lastDot = key.lastIndexOf(".");
+            if (lastDot != -1) {
+                String path = key.substring(0, lastDot);
+                String id = key.substring(lastDot + 1);
 
-				Map<String, List<?>> data = null;
-				if (messagesByPath.containsKey(path)) {
-					data = messagesByPath.get(path).getData();
-				} else {
-					data = new HashMap<String, List<?>>();
-					Message message = new Message(path, data);
-					messagesByPath.put(path, message);
-				}
-				data.put(id, Arrays.asList(string2ByteBuffer(writeData.getValue())));
+                Map<String, List<?>> data = null;
+                if (messagesByPath.containsKey(path)) {
+                    data = messagesByPath.get(path).getData();
+                } else {
+                    data = new HashMap<String, List<?>>();
+                    Message message = new Message(path, data);
+                    messagesByPath.put(path, message);
+                }
+                data.put(id, Arrays.asList(string2ByteBuffer(writeData.getValue())));
 
-			}
+            }
 
-		}
+        }
 
-		List<Message> res = new ArrayList<Message>();
-		res.addAll(messagesByPath.values());
-		return res;
+        List<Message> res = new ArrayList<Message>();
+        res.addAll(messagesByPath.values());
+        return res;
 
-	}
+    }
 
-	private Object string2ByteBuffer(Object o) {
+    private Object string2ByteBuffer(Object o) {
 
-		Charset charset = Charset.forName("utf8");
-		CharsetEncoder encoder = charset.newEncoder();
+        Charset charset = Charset.forName("utf8");
+        CharsetEncoder encoder = charset.newEncoder();
 
-		if (o instanceof String) {
-			String s = (String) o;
-			CharBuffer charBuffer = CharBuffer.wrap(s.toCharArray());
-			try {
-				return encoder.encode(charBuffer);
-			} catch (CharacterCodingException e) {
-				return o;
-			}
-		} else {
-			return o;
-		}
-	}
+        if (o instanceof String) {
+            String s = (String) o;
+            CharBuffer charBuffer = CharBuffer.wrap(s.toCharArray());
+            try {
+                return encoder.encode(charBuffer);
+            } catch (CharacterCodingException e) {
+                return o;
+            }
+        } else {
+            return o;
+        }
+    }
 }

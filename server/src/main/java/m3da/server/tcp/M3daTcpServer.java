@@ -25,6 +25,9 @@ import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Assemble the main logic for the M3DA TCP protocol server.
+ */
 public class M3daTcpServer {
 
     static final Logger LOG = LoggerFactory.getLogger(M3daTcpServer.class);
