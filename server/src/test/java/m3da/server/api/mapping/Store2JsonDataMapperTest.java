@@ -15,6 +15,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +24,7 @@ import java.util.Map;
 import m3da.server.api.json.JSystemReadData;
 import m3da.server.api.json.JSystemWriteData;
 import m3da.server.api.json.JSystemWriteSettings;
+import m3da.server.store.DataValue;
 import m3da.server.store.Envelope;
 import m3da.server.store.Message;
 
@@ -42,15 +44,34 @@ public class Store2JsonDataMapperTest {
 
 	}
 
+	private Map<Long, Envelope> makeEnvelope(Map<String, List<DataValue<?>>> messsageData,
+			long now) {
+		Map<Long, Envelope> lastReceived = new HashMap<Long, Envelope>();
+		Long nanoseconds = now * 1000;
+		lastReceived.put(nanoseconds, new Envelope(now, Arrays.asList(new Message("@sys.foo", messsageData))));
+		return lastReceived;
+	}
+
+	private void addSimpleMessage(Map<Long, Envelope> lastReceived, Long comm1, Integer value) {
+		Map<String, List<DataValue<?>>> messageData = new HashMap<String, List<DataValue<?>>>();
+		List<DataValue<?>> dataValues = new ArrayList<DataValue<?>>();
+		dataValues.add(new DataValue<Integer>(comm1, value));
+		messageData.put("bar", dataValues);
+		Message message1 = new Message("@sys.foo", messageData);
+		lastReceived.put(comm1, new Envelope(comm1, Arrays.asList(message1)));
+	}
+	
 	@Test
 	public void get_maps_single_received_data() {
 
-		Map<String, List<?>> data = new HashMap<String, List<?>>();
-		data.put("bar", Arrays.asList(42));
-
 		long now = System.currentTimeMillis();
 
-		Map<Long, Envelope> lastReceived = makeEventlope(data, now);
+		Map<String, List<DataValue<?>>> messageData = new HashMap<String, List<DataValue<?>>>();
+		List<DataValue<?>> dataValues = new ArrayList<DataValue<?>>();
+		dataValues.add(new DataValue<Integer>(now, 42));
+		messageData.put("bar", dataValues);
+
+		Map<Long, Envelope> lastReceived = makeEnvelope(messageData, now);
 
 		Map<String, List<JSystemReadData>> mapped = mapper.mapReceivedData(lastReceived);
 		JSystemReadData bar = mapped.get("@sys.foo.bar").get(0);
@@ -62,12 +83,13 @@ public class Store2JsonDataMapperTest {
 
 	@Test
 	public void get_converts_byte_buffers_to_utf8_string() {
-
-		Map<String, List<?>> data = new HashMap<String, List<?>>();
-		data.put("bar", Arrays.asList(ByteBuffer.wrap("toto".getBytes())));
-		long now = System.currentTimeMillis();
+		final long now = System.currentTimeMillis();
 		
-		Map<Long, Envelope> lastReceived = makeEventlope(data, now);
+		Map<String, List<DataValue<?>>> messageData = new HashMap<String, List<DataValue<?>>>();
+		List<DataValue<?>> dataValues = new ArrayList<DataValue<?>>();
+		dataValues.add(new DataValue<ByteBuffer>(now, ByteBuffer.wrap("toto".getBytes())));
+		messageData.put("bar", dataValues);
+		Map<Long, Envelope> lastReceived = makeEnvelope(messageData, now);
 
 		Map<String, List<JSystemReadData>> mapped = mapper.mapReceivedData(lastReceived);
 		JSystemReadData bar = mapped.get("@sys.foo.bar").get(0);
@@ -77,22 +99,22 @@ public class Store2JsonDataMapperTest {
 
 	}
 
-	private Map<Long, Envelope> makeEventlope(Map<String, List<?>> data,
-			long now) {
-		Map<Long, Envelope> lastReceived = new HashMap<Long, Envelope>();
-		Long nanoseconds = now * 1000;
-		lastReceived.put(nanoseconds, new Envelope(now, Arrays.asList(new Message("@sys.foo", data))));
-		return lastReceived;
-	}
 
+	
 	@Test
 	public void get_maps_several_received_data() {
 		long now = System.currentTimeMillis();
-		Map<String, List<?>> data = new HashMap<String, List<?>>();
-		data.put("bar", Arrays.asList(42));
-		data.put("baz", Arrays.asList("Hello"));
 
-		Map<Long, Envelope> lastReceived = makeEventlope(data, now);
+		Map<String, List<DataValue<?>>> envelopeData = new HashMap<String, List<DataValue<?>>>();
+		List<DataValue<?>> dataValues1 = new ArrayList<DataValue<?>>();
+		dataValues1.add(new DataValue<Integer>(now, 42));
+		envelopeData.put("bar", dataValues1);
+		
+		List<DataValue<?>> dataValues2 = new ArrayList<DataValue<?>>();
+		dataValues2.add(new DataValue<String>(now, "Hello"));
+		envelopeData.put("baz", dataValues2);
+		
+		Map<Long, Envelope> lastReceived = makeEnvelope(envelopeData, now);
 
 		Map<String, List<JSystemReadData>> mapped = mapper.mapReceivedData(lastReceived);
 		JSystemReadData bar = mapped.get("@sys.foo.bar").get(0);
@@ -114,15 +136,11 @@ public class Store2JsonDataMapperTest {
 		Map<Long, Envelope> lastReceived = new HashMap<Long, Envelope>();
 
 		Long comm1 = now;
-		Map<String, List<?>> data1 = new HashMap<String, List<?>>();
-		data1.put("bar", Arrays.asList(42));
-		lastReceived.put(comm1, new Envelope(comm1, Arrays.asList(new Message("@sys.foo", data1))));
+		addSimpleMessage(lastReceived, comm1, 42);
 
 		Long comm2 = (now + 5000);
-		Map<String, List<?>> data2 = new HashMap<String, List<?>>();
-		data2.put("bar", Arrays.asList(43));
-		lastReceived.put(comm2, new Envelope(comm2, Arrays.asList(new Message("@sys.foo", data2))));
-
+		addSimpleMessage(lastReceived, comm2, 43);
+		
 		// Results should be sorted by decreasing timestamps
 		Map<String, List<JSystemReadData>> mapped = mapper.mapReceivedData(lastReceived);
 		JSystemReadData bar = mapped.get("@sys.foo.bar").get(0);
@@ -137,6 +155,7 @@ public class Store2JsonDataMapperTest {
 
 	}
 
+	
 	@Test
 	public void get_handles_null_results() {
 		Map<String, List<JSystemReadData>> mapped = mapper.mapReceivedData(null);
@@ -156,28 +175,16 @@ public class Store2JsonDataMapperTest {
 
 		Message message = dataToSend.get(0);
 		assertEquals("@sys.greenhouse", message.getPath());
-		assertEquals(42, message.getData().get("humidity").get(0));
+		Map<String, List<DataValue<?>>> data = message.getData();
+		assertEquals(42, data.get("humidity").get(0).getValue());
 
-		ByteBuffer msg = (ByteBuffer) message.getData().get("msg").get(0);
+		ByteBuffer msg = (ByteBuffer) data.get("msg").get(0).getValue();
 		assertEquals("hello", new String(msg.array(), Charset.forName("utf8")));
 
 		message = dataToSend.get(1);
 		assertEquals("@sys.foo", message.getPath());
-		assertEquals(12, message.getData().get("bar").get(0));
-
-	}
-
-	@Test
-	public void foo() throws JsonParseException, JsonMappingException, IOException {
-		String str = "{ \"settings\" : [ { \"key\" : \"foo\", \"value\" : \"bar\" } ] }";
-		str = "{ \"settings\" : [{\"key\":\"foo\",\"value\":\"bar\"}]}";
-
-		ObjectMapper mapper = new ObjectMapper();
-		JSystemWriteSettings readValue = mapper.readValue(str, JSystemWriteSettings.class);
-
-		JSystemWriteData d = readValue.getSettings().get(0);
-
-		System.out.println(d.getKey());
+		data = message.getData();
+		assertEquals(12, data.get("bar").get(0).getValue());
 
 	}
 }

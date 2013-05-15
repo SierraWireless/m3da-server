@@ -146,7 +146,7 @@ public class Handler extends IoHandlerAdapter {
 
     private M3daEnvelope createResponse(String comId, M3daEnvelope env, IoSession session) throws DecoderException {
         if (env.getPayload().length > 0) {
-            long now = new Date().getTime();
+            long now = System.currentTimeMillis();
 
             BysantDecoder decoder = (BysantDecoder) session.getAttribute("decoder");
             ListDecoder out = new ListDecoder();
@@ -173,16 +173,18 @@ public class Handler extends IoHandlerAdapter {
 
                     // uncompress list of values (quasicperiodic vector, etc..)
 
-                    for (Map.Entry<Object, Object> e : msg.getBody().entrySet()) {
-                        List<?> values = extractList(e.getValue());
-                        List<DataValue<?>> dataValues = new ArrayList<DataValue<?>>(values.size());
-
-                        for (Object v : values) {
-                            dataValues.add(new DataValue<Object>(now, v));
-                        }
-
-                        bodyData.put(e.getKey().toString(), dataValues);
-                    }
+                    // FIXME : not sure when this is required ... 
+//                    for (Map.Entry<Object, Object> e : msg.getBody().entrySet()) {
+//                        List<?> values = extractList(e.getValue());
+//                        List<DataValue<?>> dataValues = new ArrayList<DataValue<?>>(values.size());
+//
+//                        for (Object v : values) {
+//                            dataValues.add(new DataValue<Object>(now, v));
+//                        }
+//
+//                        bodyData.put(e.getKey().toString(), dataValues);
+//                    }
+                    
                     data.add(new Message(msg.getPath(), bodyData));
                 }
             }
@@ -294,7 +296,7 @@ public class Handler extends IoHandlerAdapter {
                     valuesForKey.add(new DataValue<Object>(date, value));
                     lastDate = date;
                 } else {
-                    // use last date plus one milliseconds for being sure it's unique
+                    // use last date plus one milliseconds to be sure it's unique
                     lastDate++;
                     valuesForKey.add(new DataValue<Object>(lastDate, value));
                 }

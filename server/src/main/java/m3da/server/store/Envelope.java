@@ -22,7 +22,8 @@ public class Envelope {
     /**
      * Create a message from its reception time and
      * 
-     * @param timestamp
+     * @param timestamp reception time in milliseconds
+     * 
      * @param messages
      */
     public Envelope(Long timestamp, List<Message> messages) {
@@ -30,6 +31,10 @@ public class Envelope {
         this.messages = messages;
     }
 
+    /**
+     * Reception timestamp in milliseconds
+     * @return
+     */
     public Long getReceptionTime() {
         return receptionTime;
     }
