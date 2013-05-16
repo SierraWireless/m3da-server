@@ -16,7 +16,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -169,22 +168,21 @@ public class Handler extends IoHandlerAdapter {
                         } else {
                             createVersionedCorrelatedData(bodyData, msg);
                         }
+                    } else {
+
+                        // uncompress list of values (quasicperiodic vector, etc..)
+                        for (Map.Entry<Object, Object> e : msg.getBody().entrySet()) {
+                            List<?> values = extractList(e.getValue());
+                            List<DataValue<?>> dataValues = new ArrayList<DataValue<?>>(values.size());
+
+                            for (Object v : values) {
+                                dataValues.add(new DataValue<Object>(now, v));
+                            }
+
+                            bodyData.put(e.getKey().toString(), dataValues);
+                        }
                     }
 
-                    // uncompress list of values (quasicperiodic vector, etc..)
-
-                    // FIXME : not sure when this is required ... 
-//                    for (Map.Entry<Object, Object> e : msg.getBody().entrySet()) {
-//                        List<?> values = extractList(e.getValue());
-//                        List<DataValue<?>> dataValues = new ArrayList<DataValue<?>>(values.size());
-//
-//                        for (Object v : values) {
-//                            dataValues.add(new DataValue<Object>(now, v));
-//                        }
-//
-//                        bodyData.put(e.getKey().toString(), dataValues);
-//                    }
-                    
                     data.add(new Message(msg.getPath(), bodyData));
                 }
             }
