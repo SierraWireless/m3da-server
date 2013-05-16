@@ -89,7 +89,9 @@ public class SecurityHandler {
         if (secInfo == null) {
             secInfo = securityStore.getSecurityInfo(communicationId);
             if (secInfo == null) {
-                throw new SecurityException("no security information for device with commid : " + communicationId);
+                secInfo = new M3daSecurityInfo();
+                secInfo.setM3daCommId(communicationId);
+                LOG.warn("no security information for this client {}", communicationId);
             }
 
             session.setCommunicationInfo(secInfo);

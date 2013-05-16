@@ -23,13 +23,13 @@ public class M3daSecurityInfo implements Serializable {
     private String m3daCommId;
 
     /** M3DA : security type */
-    private M3daAuthentication m3daSecurityType;
+    private M3daAuthentication m3daSecurityType = M3daAuthentication.NONE;
 
     /** M3DA : the server nonce for salting the hashes */
     private String m3daNonce;
 
     /** M3DA : the server cipher to be used for communication */
-    private M3daCipher m3daCipher;
+    private M3daCipher m3daCipher = M3daCipher.NONE;
 
     /** M3DA : Pre-shared key */
     private String m3daSharedKey;
