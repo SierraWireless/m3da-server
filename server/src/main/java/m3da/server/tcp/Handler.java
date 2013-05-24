@@ -214,8 +214,7 @@ public class Handler extends IoHandlerAdapter {
                     }
                 }
 
-                pdus[i] = new M3daMessage(toSend.get(i).getPath(), 0L, new HashMap<Object, Object>(toSend.get(i)
-                        .getData()));
+                pdus[i] = new M3daMessage(toSend.get(i).getPath(), 0L, toSerialize);
             }
 
         }
