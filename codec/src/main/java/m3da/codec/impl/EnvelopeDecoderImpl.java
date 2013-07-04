@@ -11,6 +11,8 @@
 package m3da.codec.impl;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import m3da.codec.BysantDecoder;
 import m3da.codec.DecoderException;
@@ -29,65 +31,72 @@ import org.slf4j.LoggerFactory;
  */
 public class EnvelopeDecoderImpl implements EnvelopeDecoder {
 
-	private static final Logger LOG = LoggerFactory.getLogger(EnvelopeDecoderImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(EnvelopeDecoderImpl.class);
 
-	private final BysantDecoder enveloppeDecoder = new BysantDecoderImpl();
+    private final BysantDecoder enveloppeDecoder = new BysantDecoderImpl();
 
-	private M3daEnvelope decodedEnvelope = null;
+    private List<M3daEnvelope> decodedEnvelope = new ArrayList<M3daEnvelope>(2);
 
-	private boolean someParasite = false;
-	private Object parasite = null;
+    private boolean someParasite = false;
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void decodeAndAccumulate(ByteBuffer buffer, final DecoderOutput<M3daEnvelope> output) throws DecoderException {
-		if (decodedEnvelope != null) {
-			throw new IllegalStateException("already used decoder, instanciate a new one for your session");
-		}
-		parasite = null;
-		// decode the envelope
-		try {
-			enveloppeDecoder.decodeAndAccumulate(buffer, new DecoderOutput<M3daPdu>() {
+    private Object parasite = null;
 
-				/**
-				 * {@inheritDoc}
-				 */
-				@Override
-				public void decoded(M3daPdu pdu) {
-					if (pdu instanceof M3daEnvelope) {
-						decodedEnvelope = (M3daEnvelope) pdu;
-					} else {
-						decodedEnvelope = null;
-						parasite = pdu;
-						someParasite = true;
-					}
-				}
-			});
-		} catch (ClassCastException e) {
-			throw new DecoderException("could not decode the envelope", e);
-		}
-		if (parasite != null) {
-			throw new DecoderException("no envelope found in this message, but a : " + parasite.getClass().getCanonicalName());
-		}
-		// decode the envelope content
-		if (decodedEnvelope != null) {
-			output.decoded(decodedEnvelope);
-			decodedEnvelope = null;
-		} else {
-			LOG.debug("accumulating more bytes");
-		}
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void decodeAndAccumulate(ByteBuffer buffer, final DecoderOutput<M3daEnvelope> output)
+            throws DecoderException {
+        if (decodedEnvelope.size() > 0) {
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void finishDecode() throws DecoderException {
-		enveloppeDecoder.finishDecode();
-		if (someParasite) {
-			throw new DecoderException("trailling data : " + parasite);
-		}
-	}
+            throw new IllegalStateException("already used decoder, instanciate a new one for your session");
+        }
+        parasite = null;
+        // decode the envelope
+        try {
+            enveloppeDecoder.decodeAndAccumulate(buffer, new DecoderOutput<M3daPdu>() {
+
+                /**
+                 * {@inheritDoc}
+                 */
+                @Override
+                public void decoded(M3daPdu pdu) {
+                    if (pdu instanceof M3daEnvelope) {
+                        decodedEnvelope.add((M3daEnvelope) pdu);
+                    } else {
+                        decodedEnvelope = new ArrayList<M3daEnvelope>(2);
+                        parasite = pdu;
+                        someParasite = true;
+                    }
+                }
+            });
+        } catch (ClassCastException e) {
+            throw new DecoderException("could not decode the envelope", e);
+        }
+        if (parasite != null) {
+            throw new DecoderException("no envelope found in this message, but a : "
+                    + parasite.getClass().getCanonicalName());
+        }
+        // decode the envelope content
+        if (decodedEnvelope != null) {
+            for (M3daEnvelope e : decodedEnvelope) {
+                decodedEnvelope = null;
+                output.decoded(e);
+            }
+            decodedEnvelope = new ArrayList<M3daEnvelope>(2);
+        } else {
+            LOG.debug("accumulating more bytes");
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void finishDecode() throws DecoderException {
+        enveloppeDecoder.finishDecode();
+        if (someParasite) {
+            throw new DecoderException("trailling data : " + parasite);
+        }
+    }
 }

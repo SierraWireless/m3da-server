@@ -11,6 +11,8 @@
 package m3da.server.tcp;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import m3da.codec.DecoderOutput;
 import m3da.codec.EnvelopeDecoder;
@@ -65,13 +67,15 @@ public class EnvelopeFilter extends IoFilterAdapter {
 		if (message instanceof IoBuffer) {
 			// accumulate that buffer
 			final EnvelopeOutput decoderOutput = new EnvelopeOutput();
-
+			 
 			((EnvelopeDecoder) session.getAttribute(DECODER_KEY)).decodeAndAccumulate(((IoBuffer) message).buf(), decoderOutput);
-			final M3daEnvelope env = decoderOutput.getEnvelope();
-			if (env != null) {
+			final List<M3daEnvelope> envelopes = decoderOutput.getEnvelope();
+                        if (envelopes != null) {
 				// write the envelope to the next filter
-				LOG.debug("decoded one envelope : {}", env);
-				nextFilter.messageReceived(session, env);
+                                for (M3daEnvelope e : envelopes) {
+                                    LOG.debug("decoded one envelope : {}", e);
+                                    nextFilter.messageReceived(session, e);
+                                }
 			} else {
 				LOG.debug("no envelope decoded, we need to accumulate more bytes");
 			}
@@ -97,24 +101,24 @@ public class EnvelopeFilter extends IoFilterAdapter {
 			nextFilter.filterWrite(session,
 					new DefaultWriteRequest(IoBuffer.wrap(encodedBuffer), writeRequest.getFuture(), writeRequest.getDestination()));
 		} else {
-			LOG.error("We should send AwtDa3Envelop, not {}", writeRequest.getMessage().getClass().getCanonicalName());
+		        LOG.error("We should send M3daEnvelope, not {}", writeRequest.getMessage().getClass().getCanonicalName());
 			nextFilter.filterWrite(session, writeRequest);
 		}
 	}
 
 	private class EnvelopeOutput implements DecoderOutput<M3daEnvelope> {
-		private M3daEnvelope envelope = null;
-
+	        private List<M3daEnvelope> envelopes = new ArrayList<M3daEnvelope>(2);
+		
 		/**
 		 * {@inheritDoc}
 		 */
 		@Override
 		public void decoded(final M3daEnvelope pdu) {
-			envelope = pdu;
+		    envelopes.add(pdu);
 		}
 
-		public M3daEnvelope getEnvelope() {
-			return envelope;
+		public List<M3daEnvelope> getEnvelope() {
+			return envelopes;
 		}
 	}
 }
