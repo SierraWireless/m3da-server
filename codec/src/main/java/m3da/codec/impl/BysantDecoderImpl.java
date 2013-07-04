@@ -455,7 +455,7 @@ public class BysantDecoderImpl implements BysantDecoder {
             }
             LOG.trace("decodeList done");
             return list;
-        } else if (opCode == encoding.largeUntypedListOpCode()) {
+        } else if (opCode == encoding.largeTypedListOpCode()) {
             final int listSize = decodeUint((UintEncoding) BysantContext.UINTS_AND_STRS.getEncoding(), buffer)
                     .intValue() + encoding.tinyListLimit() + 1;
             LOG.trace("typed large list of {} elements", listSize);
